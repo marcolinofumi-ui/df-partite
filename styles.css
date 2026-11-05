@@ -122,7 +122,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .status.warn{color:var(--loss)}
 
 /* pannello inserimento */
-.sheet-bg{position:fixed;inset:0;background:rgba(10,15,11,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet-bg{position:fixed;inset:0;background:rgba(10,15,11,.55);z-index:60;display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--surface);color:var(--fg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;
   padding:20px max(18px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
 @media (min-width:640px){.sheet-bg{align-items:center}.sheet{border-radius:18px}}
@@ -297,3 +297,15 @@ textarea{min-height:60px;resize:vertical}
   .wrap{padding-bottom:110px}
 }
 @media (min-width:721px){.goalToast{top:78px}}
+
+/* ---------- prossima partita ---------- */
+.upc{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--club);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.upc .u-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.upc .u-badge{background:var(--yellow,#f5e300);color:#13214f;font-weight:800;font-size:12px;letter-spacing:.04em;border-radius:999px;padding:3px 10px}
+.upc .u-teams{font-family:var(--display);font-size:26px;line-height:1.1;font-weight:700;text-transform:uppercase}
+.upc .u-teams .us{color:var(--club)}
+.upc .u-when{font-weight:700;font-size:16px}
+.upc .u-live{background:var(--draw-bg,#eef1f8);border-radius:10px;padding:8px 12px;font-size:14px}
+.upc .u-live b{font-variant-numeric:tabular-nums}
+.upc .u-count{font-size:14px;color:var(--muted)}
+.upc .u-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}

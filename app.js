@@ -248,7 +248,7 @@ function setTab(t,noScroll){if(!TABS.includes(t))t="home";activeTab=t;LS.set("ta
   try{history.replaceState(null,"","#"+t)}catch(_){}
   if(!noScroll)window.scrollTo({top:0,behavior:"instant"})}
 document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.tab)));
-function renderLive(){updateAlertBar();$("tabLiveDot").hidden=!S.live;const _le=$("liveEmpty");if(_le)_le.hidden=!!(S.live||!readOnly);
+function renderLive(){renderNext();updateAlertBar();$("tabLiveDot").hidden=!S.live;
   const L=S.live,box=$("liveBox"),sec=$("liveSec");const team=S.settings.team||"DF Academy";
   if(!L){sec.hidden=readOnly;box.innerHTML=readOnly?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button></div>`;return}
   sec.hidden=false;const home=L.where!=="trasferta";
@@ -294,7 +294,48 @@ $("liveBox").addEventListener("click",async e=>{const b=e.target.closest("[data-
     const n=Math.max(0,...st.matches.map(m=>m.n||0))+1;
     st.matches.push({id:newId("m"),n,date:x.date,opp:x.opp,comp:x.comp,where:x.where,gf:x.gf,ga:x.ga,scorers:Object.entries(tally).map(([name,goals])=>({name,goals})),presenti:x.presenti||[],note:""});st.live=null});return}
 });
-function openLiveForm(){$("lOpp").value="";$("lWhere").value="casa";$("lComp").value="Campionato";$("liveErr").hidden=true;
+
+/* ---------- prossima partita ---------- */
+const DEFAULT_NEXT={opp:"Accademia Lepanto",date:"2026-11-08",time:"11:00",where:"trasferta",comp:""};
+function getNext(){const s=S.settings;const n="nextOpp" in s?{opp:s.nextOpp||"",date:s.nextDate||"",time:s.nextTime||"",where:s.nextWhere==="casa"?"casa":"trasferta",comp:s.nextComp||""}:Object.assign({},DEFAULT_NEXT);
+  if(!n.opp||!n.date)return null;
+  const t=new Date(n.date+"T"+(n.time||"00:00")+":00");if(isNaN(t))return null;
+  if(Date.now()>t.getTime()+3*36e5)return null;
+  n.start=t;n.liveFrom=new Date(t.getTime()-45*6e4);return n}
+const hm=d=>d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
+function nextCountdown(n){const now=Date.now(),st=n.start.getTime(),lf=n.liveFrom.getTime();
+  if(now>=st)return"La partita è iniziata.";
+  if(now>=lf)return"Convocazioni in corso: la diretta parte adesso.";
+  const m=Math.round((st-now)/6e4),d=Math.floor(m/1440),o=Math.floor((m%1440)/60),mi=m%60;
+  return"Mancano "+(d?d+" g "+o+" h":o?o+" h "+mi+" min":mi+" min")+" al calcio d'inizio."}
+function renderNext(){const n=getNext();const team=S.settings.team||"DF Academy";
+  const show=!!n&&!S.live;const hosts=[$("nextHome"),$("nextLive")];
+  hosts.forEach(h=>{if(h)h.hidden=!show});
+  const le=$("liveEmpty");if(le)le.hidden=!!(S.live||!readOnly||show);
+  if(!show)return;
+  const home=n.where==="casa";
+  const teams=home?`<span class="us">${esc(team)}</span> – ${esc(n.opp)}`:`${esc(n.opp)} – <span class="us">${esc(team)}</span>`;
+  const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+  const acts=readOnly?"":`<div class="u-actions"><button type="button" class="btn btn-primary btn-sm" data-next="live">● Avvia diretta</button><button type="button" class="btn btn-ghost btn-sm" data-next="edit">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-next="del">Rimuovi</button></div>`;
+  const html=`<div class="u-top"><span class="u-badge">IN ARRIVO</span><span>${home?"In casa":"In trasferta"}</span>${n.comp?`<span>· ${esc(n.comp)}</span>`:""}</div>
+    <div class="u-teams">${teams}</div>
+    <div class="u-when">${esc(day)} · ore ${esc(n.time||"")}</div>
+    <div class="u-live">Convocazioni e diretta dalle <b>${hm(n.liveFrom)}</b> (45 minuti prima). Da quel momento qui trovi il risultato in tempo reale.</div>
+    <div class="u-count" data-countdown>${nextCountdown(n)}</div>${acts}`;
+  hosts.forEach(h=>{if(h)h.innerHTML=html});}
+setInterval(()=>{const n=getNext();if(!n||S.live)return;document.querySelectorAll("[data-countdown]").forEach(e=>{e.textContent=nextCountdown(n)})},30000);
+document.addEventListener("click",e=>{const b=e.target.closest("[data-next]");if(!b)return;const a=b.dataset.next;
+  if(a==="live"){const n=getNext();openLiveForm(n);return}
+  if(a==="edit"){openNextForm();return}
+  if(a==="del"){commit(st=>{st.settings.nextOpp="";st.settings.nextDate="";st.settings.nextTime="";st.settings.nextComp=""});return}});
+function openNextForm(){const n=getNext()||{};$("nOpp").value=n.opp||"";$("nDate").value=n.date||"";$("nTime").value=n.time||"";$("nWhere").value=n.where||"trasferta";$("nComp").value=n.comp||"";$("nextErr").hidden=true;$("nextBg").hidden=false;setTimeout(()=>$("nOpp").focus(),50)}
+$("nextCancel").onclick=()=>$("nextBg").hidden=true;
+$("nextBg").addEventListener("click",e=>{if(e.target===$("nextBg"))$("nextBg").hidden=true});
+$("nextForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("nOpp").value.trim(),date=$("nDate").value,time=$("nTime").value;
+  if(!opp||!date||!time){$("nextErr").textContent="Inserisci avversario, data e ora.";$("nextErr").hidden=false;return}
+  const ok=await commit(st=>{Object.assign(st.settings,{nextOpp:opp,nextDate:date,nextTime:time,nextWhere:$("nWhere").value,nextComp:$("nComp").value.trim()})});
+  if(ok)$("nextBg").hidden=true;else{$("nextErr").textContent=$("status").textContent||"Non riesco a salvare.";$("nextErr").hidden=false}});
+function openLiveForm(n){$("lOpp").value=n&&n.opp||"";$("lWhere").value=n&&n.where||"casa";$("lComp").value=n&&n.comp||"Campionato";$("liveErr").hidden=true;
   $("lPres").innerHTML=[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map((p,i)=>`<label class="pres-item"><input type="checkbox" id="lp${i}" value="${esc(p.name)}"> ${esc(p.name)}</label>`).join("");
   $("liveBg").hidden=false;setTimeout(()=>$("lOpp").focus(),50)}
 $("liveCancel").onclick=()=>$("liveBg").hidden=true;
@@ -302,7 +343,7 @@ $("liveBg").addEventListener("click",e=>{if(e.target===$("liveBg"))$("liveBg").h
 $("liveForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("lOpp").value.trim();if(!opp){$("liveErr").textContent="Inserisci l'avversario.";$("liveErr").hidden=false;return}
   const t=new Date();const date=new Date(t.getTime()-t.getTimezoneOffset()*6e4).toISOString().slice(0,10);
   const live={opp,where:$("lWhere").value,comp:$("lComp").value.trim()||"Campionato",date,gf:0,ga:0,events:[],updated:nowHM(),presenti:[...document.querySelectorAll("#lPres input:checked")].map(i=>i.value)};
-  const ok=await commit(st=>{st.live=live});if(ok)$("liveBg").hidden=true;else{$("liveErr").textContent=$("status").textContent||"Non riesco ad avviare la diretta.";$("liveErr").hidden=false}});
+  const nx=getNext();const ok=await commit(st=>{st.live=live;if(nx&&nx.opp.toLowerCase()===opp.toLowerCase()){st.settings.nextOpp="";st.settings.nextDate="";st.settings.nextTime="";st.settings.nextComp=""}});if(ok)$("liveBg").hidden=true;else{$("liveErr").textContent=$("status").textContent||"Non riesco ad avviare la diretta.";$("liveErr").hidden=false}});
 
 /* ---------- condividi ---------- */
 async function shareOut(txt,btn){
