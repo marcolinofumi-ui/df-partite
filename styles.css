@@ -315,8 +315,6 @@ textarea{min-height:60px;resize:vertical}
 .upc.small .u-teams{font-size:20px}
 .upc .u-map{font-size:14px;color:var(--club);text-decoration:none;font-weight:600}
 .upc .u-map:hover{text-decoration:underline}
-.ntfybar{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;color:var(--muted)}
-.ntfybar a{color:var(--club);font-weight:600}
 /* ---------- statistiche in più ---------- */
 details.more{border:1px solid var(--line);border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;gap:12px}
 details.more>summary{cursor:pointer;font-weight:600;color:var(--club);padding:4px 0}

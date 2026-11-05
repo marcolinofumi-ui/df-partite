@@ -352,7 +352,7 @@ function renderNext(){const list=getNexts();const hosts=[$("nextHome"),$("nextLi
   if(!show)return;
   const html=list.map((n,i)=>nextCard(n,i===0)).join("")+(readOnly?"":`<button type="button" class="btn btn-ghost btn-sm" data-next="add">+ Aggiungi partita in arrivo</button>`)+(!list.length&&!readOnly?`<div class="status">Nessuna partita in arrivo.</div>`:"");
   hosts.forEach(h=>{if(h)h.innerHTML=html});
-  const nb=$("ntfyBar");if(nb){const t=S.settings.ntfyTopic;nb.hidden=!t;if(t)nb.innerHTML=`🔔 Vuoi gli avvisi gol anche con l'app chiusa? Installa l'app gratuita <b>ntfy</b> e iscriviti all'argomento <b>${esc(t)}</b>. <a target="_blank" rel="noopener" href="https://ntfy.sh/${encodeURIComponent(t)}">Apri la pagina di iscrizione</a>`}}
+}
 setInterval(()=>{if(S.live)return;const l=getNexts();document.querySelectorAll("[data-countdown]").forEach(e=>{const n=l.find(x=>x.id===e.dataset.id);if(n)e.textContent=nextCountdown(n)})},30000);
 function icsFile(n){const p=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"T"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0")+"00";
   const e=s=>String(s||"").replace(/[\\,;]/g,"\\$&").replace(/\n/g,"\\n");const team=S.settings.team||"DF Academy";const title=n.where==="casa"?`${team} - ${n.opp}`:`${n.opp} - ${team}`;
@@ -470,12 +470,11 @@ function openPlayer(id){const p=S.players.find(x=>x.id===id);if(!p)return;const 
 $("playerBg").addEventListener("click",e=>{if(e.target===$("playerBg"))$("playerBg").hidden=true});
 
 /* ---------- impostazioni ---------- */
-$("settingsBtn").onclick=()=>{$("sKid").value=S.settings.kid||"";$("sTeam").value=S.settings.team||"DF Academy";$("sSeason").value=S.settings.season||"";$("sCoach").value=S.settings.coach||"";$("sAlias").value=S.settings.coachAlias||"";$("sNtfy").value=S.settings.ntfyTopic||"";$("settingsBg").hidden=false;setTimeout(()=>$("sKid").focus(),50)};
+$("settingsBtn").onclick=()=>{$("sKid").value=S.settings.kid||"";$("sTeam").value=S.settings.team||"DF Academy";$("sSeason").value=S.settings.season||"";$("sCoach").value=S.settings.coach||"";$("sAlias").value=S.settings.coachAlias||"";$("settingsBg").hidden=false;setTimeout(()=>$("sKid").focus(),50)};
 $("settingsCancel").onclick=()=>$("settingsBg").hidden=true;
 $("settingsBg").addEventListener("click",e=>{if(e.target===$("settingsBg"))$("settingsBg").hidden=true});
 $("settingsForm").addEventListener("submit",async e=>{e.preventDefault();
   const s={kid:$("sKid").value.trim(),team:$("sTeam").value.trim()||"DF Academy",season:$("sSeason").value.trim()||"Stagione 2026/27",coach:$("sCoach").value.trim(),coachAlias:$("sAlias").value.trim()};
-  s.ntfyTopic=$("sNtfy").value.trim().replace(/[^A-Za-z0-9_-]/g,"");
   $("settingsBg").hidden=true;await commit(st=>{Object.assign(st.settings,s)});});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeForm();$("settingsBg").hidden=true;$("playerBg").hidden=true;$("shareBg").hidden=true;$("liveBg").hidden=true}});
 
