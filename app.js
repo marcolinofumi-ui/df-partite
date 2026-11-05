@@ -344,7 +344,7 @@ const safeUrl=u=>/^https?:\/\//i.test(String(u||"").trim())?String(u).trim():"";
 function nextCard(n,first){const team=S.settings.team||"DF Academy";const home=n.where==="casa";
   const teams=home?`<span class="us">${esc(team)}</span> – ${esc(n.opp)}`:`${esc(n.opp)} – <span class="us">${esc(team)}</span>`;
   const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
-  const map=n.addr?`<a class="u-map" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.addr)}">📍 ${esc(n.addr)} · Apri la mappa</a>`:"";
+  const isUrl=/^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)/i.test(n.addr||"");const map=n.addr?`<a class="u-map" target="_blank" rel="noopener" href="${isUrl?esc(n.addr):"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(n.addr)}">📍 ${isUrl?"Indicazioni sul campo":esc(n.addr)} · Apri la mappa</a>`:"";
   const acts=`<div class="u-actions"><button type="button" class="btn btn-ghost btn-sm" data-next="ics" data-id="${esc(n.id)}">📅 Aggiungi al calendario</button>`+(readOnly?"":`<button type="button" class="btn btn-primary btn-sm" data-next="live" data-id="${esc(n.id)}">● Avvia diretta</button><button type="button" class="btn btn-ghost btn-sm" data-next="edit" data-id="${esc(n.id)}">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-next="del" data-id="${esc(n.id)}">Rimuovi</button>`)+`</div>`;
   return `<div class="upc${first?"":" small"}"><div class="u-top"><span class="u-badge">${first?"PROSSIMA PARTITA":"IN ARRIVO"}</span><span>${home?"In casa":"In trasferta"}</span>${n.comp?`<span>· ${esc(n.comp)}</span>`:""}</div>
     <div class="u-teams">${teams}</div>
