@@ -16,11 +16,15 @@ function normState(st){st=st||{};return{matches:st.matches||[],players:st.player
   settings:Object.assign({kid:"",team:"DF Academy",season:"Annata 2018 · Stagione 2026/27",coach:"",coachAlias:""},st.settings||{})}}
 
 /* ---------- comunicazione con Google Sheets ---------- */
+const READ_ACTIONS=new Set(["version","get","photoGet"]);
 async function api(action,data){
   if(!API)throw{code:"config"};
-  let r;
-  try{r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({action},data||{}))})}
-  catch(_){throw{code:"offline"}}
+  const body=JSON.stringify(Object.assign({action},data||{}));const tries=READ_ACTIONS.has(action)?3:1;let r;
+  for(let k=0;k<tries;k++){
+    const ctl=typeof AbortController!=="undefined"?new AbortController():null;const to=ctl?setTimeout(()=>ctl.abort(),25000):0;
+    try{r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body,signal:ctl?ctl.signal:undefined});clearTimeout(to);break}
+    catch(_){clearTimeout(to);if(k===tries-1)throw{code:"offline"};await new Promise(z=>setTimeout(z,700*(k+1)))}
+  }
   let j;try{j=await r.json()}catch(_){throw{code:"risposta"}}
   if(!j.ok){const e={code:j.error||"errore",data:j};throw e}
   return j;
@@ -178,7 +182,7 @@ function xInfo(m){const x=m.x||{};const sh=n=>esc(n.split(" ").slice(-1)[0]);con
   if((x.yc||[]).length)o.push(`<div class="xline"><b>🟨 Ammoniti:</b> ${x.yc.map(sh).join(", ")}</div>`);
   if(x.mvp)o.push(`<div class="xline"><b>⭐ Migliore in campo:</b> ${esc(x.mvp)}</div>`);
   return o.join("")}
-function afterRender(){loadPics()}
+function afterRender(){loadPics();renderSoundBtn()}
 /* ---------- form partita ---------- */
 let rowSeq=0;
 function scorerRow(name="",goals=1){
@@ -310,7 +314,7 @@ $("liveBox").addEventListener("click",async e=>{const b=e.target.closest("[data-
   if(a==="gol"){livePick=true;renderLive();return}
   if(a==="pickclose"){livePick=false;renderLive();return}
   if(a==="scorer"){livePick=false;const n=b.dataset.n;const sc=L.gf+1;const txt=`GOL ${S.settings.team||"DF"}! ${n?shortName(n)+" · ":""}${L.where==="trasferta"?(L.ga+"–"+sc):(sc+"–"+L.ga)}`;
-    await liveEvent({type:"gol",text:txt,scorer:n},x=>{x.gf+=1});return}
+    await liveEvent({type:"gol",text:txt,scorer:n},x=>{x.gf+=1});cheer();return}
   if(a==="golavv"){const sc=L.ga+1;await liveEvent({type:"golavv",text:`Gol ${L.opp} · ${L.where==="trasferta"?(sc+"–"+L.gf):(L.gf+"–"+sc)}`},x=>{x.ga+=1});return}
   if(a==="quick"){await liveEvent({type:"nota",text:b.dataset.q});return}
   if(a==="undo"){await commit(st=>{const x=st.live;const ev=(x.events||[]).pop();if(ev){if(ev.type==="gol")x.gf=Math.max(0,x.gf-1);if(ev.type==="golavv")x.ga=Math.max(0,x.ga-1)}x.updated=nowHM()});return}
@@ -498,12 +502,21 @@ function openPlayer(id){const p=S.players.find(x=>x.id===id);if(!p)return;const 
   const assists=sx(x=>(x.as||[]).filter(s=>norm(s.name)===k).reduce((q,s)=>q+(+s.n||0),0));
   const yellows=sx(x=>(x.yc||[]).some(n=>norm(n)===k)?1:0);const mvps=sx(x=>x.mvp&&norm(x.mvp)===k?1:0);
   const mins=sx(x=>Object.entries(x.min||{}).filter(([n])=>norm(n)===k).reduce((q,[,v])=>q+(+v||0),0));
-  $("playerSheet").innerHTML=`<h3 id="psName">${esc(p.name)}</h3><span class="label">${esc(p.role||"")}</span>
+  let cards={};try{cards=JSON.parse(S.settings.cards||"{}")||{}}catch(_){}const cd=cards[p.id];
+  const cardHtml=(cd?`<div class="fifa"><img alt="Carta di ${esc(p.name)}" data-t="${esc(cd.i)}"${PIC[cd.i]?` src="${PIC[cd.i]}"`:""}></div>`:"")+(readOnly?"":`<div class="fifa-act"><label class="btn btn-ghost btn-sm">${I.cam}${cd?"Cambia carta":"Aggiungi carta"}<input type="file" accept="image/*" id="cardUp" hidden></label><span class="status" id="cardSt"></span></div>`);
+  $("playerSheet").innerHTML=cardHtml+`<h3 id="psName">${esc(p.name)}</h3><span class="label">${esc(p.role||"")}</span>
     <div class="ps-stats"><div><span class="label">Presenze</span><b class="num">${played.length}/${chron.length}</b></div><div><span class="label">Gol</span><b class="num">${goals}</b></div><div><span class="label">Vittorie</span><b class="num">${played.filter(m=>result(m)==="V").length}</b></div>
       <div><span class="label">Assist</span><b class="num">${assists}</b></div><div><span class="label">Ammonizioni</span><b class="num">${yellows}</b></div><div><span class="label">Migliore in campo</span><b class="num">${mvps}</b></div>${mins?`<div><span class="label">Minuti</span><b class="num">${mins}</b></div>`:""}</div>
     <ul class="ps-list">${rows}</ul>
     <div class="sheet-actions"><button type="button" class="btn btn-primary" id="psClose">Chiudi</button></div>`;
-  $("playerBg").hidden=false;$("psClose").onclick=()=>$("playerBg").hidden=true;setTimeout(()=>$("psClose").focus(),50);}
+  const up=$("cardUp");if(up)up.onchange=async()=>{const f=up.files[0];up.value="";if(!f)return;const set=t=>{$("cardSt").textContent=t};
+    try{set("Carico la carta…");const full=await shrink(f,1400,.85),thumb=await shrink(f,300,.7);const j=await api("photoUpload",{token:SESSION.token,full,thumb,name:"carta_"+Date.now()});PIC[j.id]=URL.createObjectURL(b64blob(full));let old=null;
+      const ok=await commit(st=>{let m={};try{m=JSON.parse(st.settings.cards||"{}")||{}}catch(_){}old=m[p.id]||null;m[p.id]={i:j.id,t:j.tid};st.settings.cards=JSON.stringify(m)});
+      if(ok&&old){api("photoDelete",{token:SESSION.token,ids:[old.i,old.t]}).catch(()=>{})}
+      if(ok)openPlayer(id);else set("Non riesco a salvare la carta.")}
+    catch(err){set(errMsg(err)||"Caricamento non riuscito.")}};
+  loadPics();
+  $("playerBg").hidden=false;$("psClose").onclick=()=>$("playerBg").hidden=true;setTimeout(()=>{$("psClose").focus({preventScroll:true});$("playerSheet").scrollTop=0},50);}
 $("playerBg").addEventListener("click",e=>{if(e.target===$("playerBg"))$("playerBg").hidden=true});
 
 /* ---------- impostazioni ---------- */
@@ -527,11 +540,28 @@ $("logoutBtn").onclick=()=>logout("");
 
 /* ---------- aggiornamento automatico ---------- */
 const busy=()=>!$("sheetBg").hidden||!$("settingsBg").hidden||!$("liveBg").hidden||livePick||liveConfirm||(document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#app input,#app textarea,#app select"));
-let liveSeen=false,toastTimer,persistedNext=false;
+let liveSeen=false,toastTimer,persistedNext=false,failN=0,lastOk=0;
 function showToast(txt,opp){const t=$("goalToast");t.textContent=txt;t.className="goalToast"+(opp?" opp":"");t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true},9000)}
 function systemNotify(title,body){try{if(!("Notification" in window)||Notification.permission!=="granted")return;
   if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body,icon:"icons/icon-192.png",badge:"icons/icon-192.png",tag:"df-live",renotify:true,vibrate:[200,100,200]}))}
   else new Notification(title,{body,icon:"icons/icon-192.png"})}catch(_){}}
+/* ---------- esultanza al gol (suono sintetizzato, nessun file) ---------- */
+let AC=null;const soundOn=()=>LS.get("sound")!==0;
+function audioCtx(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!AC)AC=new C();if(AC.state==="suspended")AC.resume();return AC}catch(_){return null}}
+["pointerdown","keydown"].forEach(t=>document.addEventListener(t,()=>{if(soundOn())audioCtx()},{capture:true,passive:true}));
+function cheer(force){if(!force&&!soundOn())return;const c=audioCtx();if(!c)return;try{
+  const t0=c.currentTime+.03,m=c.createGain();m.gain.value=.85;m.connect(c.destination);
+  const len=Math.floor(c.sampleRate*3.3),buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);let b=0;for(let i=0;i<len;i++){b=(b+.03*(Math.random()*2-1))/1.03;d[i]=b*4}
+  const n=c.createBufferSource();n.buffer=buf;const bp=c.createBiquadFilter();bp.type="bandpass";bp.Q.value=.5;bp.frequency.setValueAtTime(500,t0);bp.frequency.linearRampToValueAtTime(1500,t0+.7);
+  const g=c.createGain();g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.9,t0+.45);g.gain.setValueAtTime(.9,t0+1.7);g.gain.exponentialRampToValueAtTime(.001,t0+3.2);
+  n.connect(bp);bp.connect(g);g.connect(m);n.start(t0);
+  const note=(f,at,dur,vol)=>{const o=c.createOscillator(),lp=c.createBiquadFilter(),e=c.createGain();o.type="sawtooth";o.frequency.value=f;lp.type="lowpass";lp.frequency.value=2400;
+    e.gain.setValueAtTime(0,t0+at);e.gain.linearRampToValueAtTime(vol,t0+at+.03);e.gain.setValueAtTime(vol,t0+at+dur-.08);e.gain.linearRampToValueAtTime(0,t0+at+dur);o.connect(lp);lp.connect(e);e.connect(m);o.start(t0+at);o.stop(t0+at+dur+.05)};
+  note(392,0,.2,.16);note(523.25,.22,.2,.16);note(659.25,.44,.2,.16);[523.25,659.25,783.99].forEach(f=>note(f,.68,1.5,.14))
+}catch(_){}}
+function renderSoundBtn(){const r=$("soundRow");if(!r)return;const on=soundOn();
+  r.innerHTML=`<button type="button" class="btn btn-ghost btn-sm" id="soundBtn" aria-pressed="${on}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/>${on?'<path d="M16 9a4 4 0 010 6M18.500 6.500a8 8 0 010 11"/>':'<path d="M17 9l5 6M22 9l-5 6"/>'}</svg>Suono al gol: ${on?"attivo":"spento"}</button>`;
+  $("soundBtn").onclick=()=>{const v=soundOn()?0:1;LS.set("sound",v);renderSoundBtn();if(v)cheer(true)}}
 function notifyLive(prev,now){
   if(!now)return;const team=S.settings.team||"DF Academy";const home=now.where!=="trasferta";
   const score=home?`${team} ${now.gf}–${now.ga} ${now.opp}`:`${now.opp} ${now.ga}–${now.gf} ${team}`;
@@ -540,7 +570,7 @@ function notifyLive(prev,now){
   const fresh=ne.slice(pe).filter(e=>e.type==="gol"||e.type==="golavv");if(!fresh.length)return;
   const last=fresh[fresh.length-1],ours=last.type==="gol";
   const head=ours?"⚽ GOL DF ACADEMY!":"Gol avversario";
-  showToast(`${head} ${score}${ours&&last.scorer?" · "+last.scorer:""}`,!ours);
+  showToast(`${head} ${score}${ours&&last.scorer?" · "+last.scorer:""}`,!ours);if(ours)cheer();
   try{if(navigator.vibrate)navigator.vibrate(ours?[250,100,250,100,400]:[300])}catch(_){}
   systemNotify(head,`${score}${ours&&last.scorer?" · segna "+last.scorer:""}`)}
 function updateAlertBar(){const b=$("alertBar");if(!b)return;b.hidden=!(S.live&&"Notification" in window&&Notification.permission==="default")}
@@ -559,13 +589,14 @@ async function refresh(force){
     if(liveSeen)notifyLive(prevLive,S.live);liveSeen=true;
     if(!readOnly&&!persistedNext&&S.matches.length&&!S.settings.nextList){persistedNext=true;setTimeout(()=>saveNexts(readNexts()),400)}
     if(force||!busy())render();
-    $("offline").hidden=true;
+    failN=0;lastOk=Date.now();$("offline").hidden=true;
   }catch(e){
     if(["sessione_scaduta","sessione_non_valida","accesso_richiesto"].includes(e.code)){logout(errMsg(e));return}
-    if(e.code==="offline")$("offline").hidden=false;
+    if(e.code==="offline"){failN++;if(failN>=2||navigator.onLine===false){const o=$("offline");o.textContent="Connessione assente o instabile"+(lastOk?" · dati aggiornati alle "+hm(new Date(lastOk)):"")+" · tocca per riprovare";o.hidden=false}}
   }
 }
 function schedulePoll(){clearTimeout(pollTimer);if(!SESSION)return;const ms=S.live?5000:90000;pollTimer=setTimeout(async()=>{if(document.visibilityState==="visible"||S.live)await refresh(false);schedulePoll()},ms)}
+$("offline").addEventListener("click",()=>refresh(true));window.addEventListener("online",()=>{if(SESSION)refresh(true)});
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&SESSION){refresh(false).then(schedulePoll)}});
 
 /* ---------- avvio ---------- */
@@ -592,3 +623,8 @@ $("seedBtn").onclick=async()=>{const b=$("seedBtn");b.disabled=true;
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
 (function(){const h=(location.hash||"").slice(1);setTab(TABS.includes(h)?h:activeTab,true)})();
 boot();
+
+/* menu in basso sempre agganciato al fondo (iOS: la barra a volte "si alza" quando cambia la vista) */
+(function(){const vv=window.visualViewport;const t=document.getElementById("tabs");if(!t)return;
+  const pin=()=>{let d=0;if(vv){d=vv.offsetTop+vv.height-window.innerHeight}t.style.transform=d>1?"translateY("+Math.round(d)+"px)":""};
+  if(vv){vv.addEventListener("resize",pin);vv.addEventListener("scroll",pin)}window.addEventListener("resize",pin);window.addEventListener("orientationchange",()=>setTimeout(pin,300));pin()})();

@@ -354,3 +354,16 @@ details.more[open]>summary{margin-bottom:6px}
 .pic-box{display:flex;flex-direction:column;gap:10px;align-items:center;max-width:96vw}
 .pic-box img{max-width:96vw;max-height:78vh;border-radius:10px;background:#111;object-fit:contain}
 .pic-actions{display:flex;gap:8px}
+
+/* carta giocatore, suono, banner offline */
+.fifa{display:flex;justify-content:center;margin:0 0 10px}
+.fifa img{width:min(260px,70%);height:auto;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);background:var(--surface-2)}
+.fifa-act{display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:10px}
+.fifa-act .btn svg,.sound-row .btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-4px;margin-right:6px}
+.sound-row{display:flex;justify-content:flex-end;margin:0 0 8px}
+.offline{cursor:pointer}
+
+html{background:var(--bg);min-height:100%;overscroll-behavior-y:none}
+body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
+@media (max-width:720px){.tabs{bottom:0;inset-block-end:0;-webkit-transform:translateZ(0);will-change:transform}}
+.fifa img{width:min(210px,60%)}
