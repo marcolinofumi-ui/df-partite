@@ -491,7 +491,7 @@ $("logoutBtn").onclick=()=>logout("");
 
 /* ---------- aggiornamento automatico ---------- */
 const busy=()=>!$("sheetBg").hidden||!$("settingsBg").hidden||!$("liveBg").hidden||livePick||liveConfirm||(document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#app input,#app textarea,#app select"));
-let liveSeen=false,toastTimer;
+let liveSeen=false,toastTimer,persistedNext=false;
 function showToast(txt,opp){const t=$("goalToast");t.textContent=txt;t.className="goalToast"+(opp?" opp":"");t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true},9000)}
 function systemNotify(title,body){try{if(!("Notification" in window)||Notification.permission!=="granted")return;
   if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body,icon:"icons/icon-192.png",badge:"icons/icon-192.png",tag:"df-live",renotify:true,vibrate:[200,100,200]}))}
@@ -521,6 +521,7 @@ async function refresh(force){
     readOnly=j.role!=="admin";
     const prevLive=S.live;S=normState(j.state);VERSION=j.version;LS.set("cache",{state:S,version:VERSION});
     if(liveSeen)notifyLive(prevLive,S.live);liveSeen=true;
+    if(!readOnly&&!persistedNext&&S.matches.length&&!S.settings.nextList&&!("nextOpp" in S.settings)){persistedNext=true;setTimeout(()=>saveNexts(readNexts()),400)}
     if(force||!busy())render();
     $("offline").hidden=true;
   }catch(e){
