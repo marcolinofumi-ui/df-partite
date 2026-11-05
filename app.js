@@ -337,7 +337,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeForm();$("sett
 /* ---------- accesso ---------- */
 function showLogin(msg){$("app").hidden=true;$("login").hidden=false;$("loginErr").textContent=msg||"";$("loginErr").hidden=!msg;setTimeout(()=>$("lgUser").focus(),50)}
 function logout(msg){SESSION=null;LS.del("session");LS.del("cache");clearTimeout(pollTimer);S=normState({});VERSION=null;showLogin(msg)}
-$("loginForm").addEventListener("submit",async e=>{e.preventDefault();const btn=$("lgBtn");btn.disabled=true;$("loginErr").hidden=true;
+$("loginForm").addEventListener("submit",async e=>{e.preventDefault();askNotifyOnce();const btn=$("lgBtn");btn.disabled=true;$("loginErr").hidden=true;
   try{const j=await api("login",{user:$("lgUser").value,pass:$("lgPass").value});SESSION={token:j.token,role:j.role,user:j.user};LS.set("session",SESSION);$("lgPass").value="";await boot()}
   catch(err){$("loginErr").textContent=errMsg(err);$("loginErr").hidden=false}
   finally{btn.disabled=false}});
@@ -362,6 +362,9 @@ function notifyLive(prev,now){
   try{if(navigator.vibrate)navigator.vibrate(ours?[250,100,250,100,400]:[300])}catch(_){}
   systemNotify(head,`${score}${ours&&last.scorer?" · segna "+last.scorer:""}`)}
 function updateAlertBar(){const b=$("alertBar");if(!b)return;b.hidden=!(S.live&&"Notification" in window&&Notification.permission==="default")}
+/* Il permesso lo decide sempre il telefono: lo chiedo da solo al primo tocco (accesso o primo tap), senza che serva cercare il pulsante */
+function askNotifyOnce(){try{if("Notification" in window&&Notification.permission==="default"&&!LS.get("askedNotify")){LS.set("askedNotify",1);Notification.requestPermission().then(updateAlertBar).catch(()=>{})}}catch(_){}}
+document.addEventListener("click",askNotifyOnce,{once:true,capture:true});
 $("alertBtn").onclick=async()=>{try{await Notification.requestPermission()}catch(_){}updateAlertBar()};
 async function refresh(force){
   if(!SESSION||saving)return;
