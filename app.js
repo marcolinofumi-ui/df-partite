@@ -26,7 +26,7 @@ async function api(action,data){
 const ERR={offline:"Nessuna connessione. Mostro gli ultimi dati scaricati.",config:"App non configurata: manca l'indirizzo del foglio Google in config.js.",
   credenziali_errate:"Utente o password non corretti.",credenziali_mancanti:"Inserisci utente e password.",sessione_scaduta:"Sessione scaduta: accedi di nuovo.",
   sessione_non_valida:"Sessione non valida: accedi di nuovo.",accesso_richiesto:"Accedi per vedere le partite.",non_autorizzato:"Il tuo utente può solo consultare.",
-  conflitto:"I dati sono stati modificati da un altro dispositivo: ho caricato la versione aggiornata, ripeti la modifica."};
+  foto_troppo_grande:"La foto è troppo grande.",non_trovata:"Foto non trovata.",conflitto:"I dati sono stati modificati da un altro dispositivo: ho caricato la versione aggiornata, ripeti la modifica."};
 const errMsg=e=>ERR[e&&e.code]||"Qualcosa non ha funzionato, riprova tra poco.";
 
 async function commit(mut){
@@ -162,10 +162,12 @@ function render(){
       ${xInfo(m)}
       ${(m.presenti||[]).length?`<div class="present"><span class="label">In campo (${m.presenti.length})</span> ${m.presenti.map(n=>`<span class="${isKid(n)?"me":""}">${esc(n.split(" ").slice(-1)[0])}${S.players.filter(p=>p.name.split(" ").slice(-1)[0]===n.split(" ").slice(-1)[0]).length>1?" "+esc(n[0])+".":""}</span>`).join(", ")}</div>`:""}
       ${m.note?`<div class="note"><span class="label">Commento</span>${esc(m.note)}</div>`:(readOnly?"":`<button type="button" class="add-note" data-act="note" data-id="${m.id}">+ Aggiungi commento</button>`)}
+      ${picHTML(m)}
       ${act?`<div class="actions">${act}</div>`:""}
     </article>`}).join("")
     :(list.length?`<div class="empty">Nessuna partita in questa competizione.</div>`
       :`<div class="empty"><strong>Ancora nessuna partita</strong>Le partite compariranno qui dopo il prossimo fischio finale.</div>`);
+  afterRender();
 }
 
 function xInfo(m){const x=m.x||{};const sh=n=>esc(n.split(" ").slice(-1)[0]);const o=[];
@@ -173,6 +175,7 @@ function xInfo(m){const x=m.x||{};const sh=n=>esc(n.split(" ").slice(-1)[0]);con
   if((x.yc||[]).length)o.push(`<div class="xline"><b>🟨 Ammoniti:</b> ${x.yc.map(sh).join(", ")}</div>`);
   if(x.mvp)o.push(`<div class="xline"><b>⭐ Migliore in campo:</b> ${esc(x.mvp)}</div>`);
   return o.join("")}
+function afterRender(){loadPics()}
 /* ---------- form partita ---------- */
 let rowSeq=0;
 function scorerRow(name="",goals=1){
@@ -228,7 +231,7 @@ $("matchForm").addEventListener("submit",async e=>{
   const opp=$("fOpp").value.trim();const date=$("fDate").value;
   if(!opp){err.textContent="Inserisci il nome dell'avversario.";err.hidden=false;return}
   const prev=S.matches.find(x=>x.id===editingId);const m={id:editingId||newId("m"),n:prev?prev.n:(Math.max(0,...S.matches.map(x=>x.n||0))+1),date,opp,comp:$("fComp").value,where:$("fWhere").querySelector('[aria-pressed="true"]').dataset.v,
-    gf:Math.max(0,parseInt($("fGF").value)||0),ga:Math.max(0,parseInt($("fGA").value)||0),scorers:readScorers(),presenti:[...document.querySelectorAll("#presRows input:checked")].map(i=>i.value),note:$("fNote").value.trim(),x:readExtra()};
+    gf:Math.max(0,parseInt($("fGF").value)||0),ga:Math.max(0,parseInt($("fGA").value)||0),scorers:readScorers(),presenti:[...document.querySelectorAll("#presRows input:checked")].map(i=>i.value),note:$("fNote").value.trim(),x:Object.assign(readExtra(),prev&&prev.x&&prev.x.pics?{pics:prev.x.pics}:{})};
   $("saveBtn").disabled=true;
   const ok=await commit(st=>{const i=st.matches.findIndex(x=>x.id===m.id);if(i>=0)st.matches[i]=m;else st.matches.push(m)});
   $("saveBtn").disabled=false;
@@ -449,6 +452,37 @@ function openReport(){const team=S.settings.team||"DF Academy";
     <h2>Giocatori</h2><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Presenze</th><th>Gol</th><th>Assist</th><th>Ammonizioni</th><th>Migliore</th><th>Minuti</th></tr></thead><tbody>${prow}</tbody></table>`;
   window.print()}
 $("reportBtn").onclick=openReport;
+
+/* ---------- foto della partita (salvate nel Drive del Foglio, visibili solo dopo l'accesso) ---------- */
+const PIC={};let picQ=0;
+async function shrink(file,max,q){let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(_){bmp=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)})}
+  const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight;const s=Math.min(1,max/Math.max(w,h));const c=document.createElement("canvas");c.width=Math.round(w*s);c.height=Math.round(h*s);
+  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);return c.toDataURL("image/jpeg",q).split(",")[1]}
+const b64blob=b=>{const bin=atob(b),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:"image/jpeg"})};
+function picHTML(m){const L=(m.x&&m.x.pics)||[];if(!L.length&&readOnly)return"";
+  const th=L.map(p=>`<button type="button" class="ph" data-pic="${esc(p.i)}" data-pm="${esc(m.id)}" aria-label="Apri la foto"><img alt="" data-t="${esc(p.t)}"${PIC[p.t]?` src="${PIC[p.t]}"`:""}></button>`).join("");
+  const add=readOnly||L.length>=30?"":`<label class="btn btn-ghost btn-sm ph-add">📷 Scatta<input type="file" accept="image/*" capture="environment" data-up="${esc(m.id)}" hidden></label><label class="btn btn-ghost btn-sm ph-add">🖼️ Carica foto<input type="file" accept="image/*" multiple data-up="${esc(m.id)}" hidden></label>`;
+  return `<div class="photos">${th?`<div class="ph-strip">${th}</div>`:""}${add?`<div class="ph-actions">${add}<span class="status" data-pst="${esc(m.id)}"></span></div>`:""}</div>`}
+async function loadPics(){if(!SESSION)return;const todo=[...document.querySelectorAll("img[data-t]:not([src])")];
+  const work=async img=>{const t=img.dataset.t;if(PIC[t]){img.src=PIC[t];return}
+    try{const j=await api("photoGet",{token:SESSION.token,id:t});PIC[t]=URL.createObjectURL(b64blob(j.data));document.querySelectorAll("img[data-t]").forEach(x=>{if(x.dataset.t===t)x.src=PIC[t]})}catch(_){}};
+  const lanes=[0,1,2].map(async()=>{while(todo.length){const i=todo.shift();if(!i.getAttribute("src"))await work(i)}});await Promise.all(lanes)}
+let picCur=null,picConfirm=false;
+function closePic(){$("picBg").hidden=true;picCur=null;picConfirm=false;$("picDel").textContent="Elimina foto"}
+$("picClose").onclick=closePic;$("picBg").addEventListener("click",e=>{if(e.target===$("picBg"))closePic()});
+$("matches").addEventListener("click",async e=>{const b=e.target.closest(".ph");if(!b)return;
+  const m=S.matches.find(x=>x.id===b.dataset.pm);const p=m&&((m.x&&m.x.pics)||[]).find(q=>q.i===b.dataset.pic);if(!p)return;
+  picCur={mid:m.id,p};picConfirm=false;$("picDel").hidden=readOnly;$("picDel").textContent="Elimina foto";$("picImg").src=PIC[p.t]||"";$("picBg").hidden=false;
+  try{const j=await api("photoGet",{token:SESSION.token,id:p.i});if(picCur&&picCur.p.i===p.i)$("picImg").src=URL.createObjectURL(b64blob(j.data))}catch(_){}});
+$("picDel").onclick=async()=>{if(!picCur)return;if(!picConfirm){picConfirm=true;$("picDel").textContent="Conferma: elimina";return}
+  const {mid,p}=picCur;closePic();try{await api("photoDelete",{token:SESSION.token,ids:[p.i,p.t]})}catch(_){}
+  await commit(st=>{const m=st.matches.find(x=>x.id===mid);if(m&&m.x&&m.x.pics)m.x.pics=m.x.pics.filter(q=>q.i!==p.i);if(m&&m.x&&!m.x.pics.length)delete m.x.pics})};
+$("matches").addEventListener("change",async e=>{const inp=e.target.closest("input[data-up]");if(!inp||!inp.files.length)return;const mid=inp.dataset.up;const files=[...inp.files].slice(0,10);inp.value="";
+  const set=t=>{const q=document.querySelector(`[data-pst="${mid}"]`);if(q)q.textContent=t};const added=[];
+  try{for(let k=0;k<files.length;k++){set(`Carico ${k+1} di ${files.length}…`);const full=await shrink(files[k],1600,.82),thumb=await shrink(files[k],420,.7);
+      const j=await api("photoUpload",{token:SESSION.token,full,thumb,name:"p"+Date.now()+"_"+k});added.push({i:j.id,t:j.tid});PIC[j.tid]=URL.createObjectURL(b64blob(thumb))}
+    set("Salvo…");await commit(st=>{const m=st.matches.find(x=>x.id===mid);if(!m)return;m.x=m.x||{};m.x.pics=[...(m.x.pics||[]),...added]});set("")}
+  catch(err){set(errMsg(err)||"Caricamento non riuscito.")}});
 
 /* ---------- scheda giocatore ---------- */
 function openPlayer(id){const p=S.players.find(x=>x.id===id);if(!p)return;const k=norm(p.name);
