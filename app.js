@@ -4,6 +4,8 @@
 const API=window.DF_CONFIG&&window.DF_CONFIG.API_URL;
 const $=id=>document.getElementById(id);
 const COACHPHOTO="";
+const ICO=p=>`<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+const I={cam:ICO('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'),img:ICO('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/>'),share:ICO('<path d="M12 15V3M7 8l5-5 5 5M5 14v6h14v-6"/>'),card:ICO('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'),edit:ICO('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),del:ICO('<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>')};
 const BALL='<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 4.6l2.6 1.9-1 3.1H6.4l-1-3.1z" fill="currentColor"/></svg>';
 const LS={get(k){try{return JSON.parse(localStorage.getItem("df_"+k))}catch(_){return null}},set(k,v){try{localStorage.setItem("df_"+k,JSON.stringify(v))}catch(_){}},del(k){try{localStorage.removeItem("df_"+k)}catch(_){}}};
 let S=normState({}),VERSION=null,SESSION=LS.get("session");
@@ -150,10 +152,11 @@ function render(){
     const teams=home?`<span class="us">${team}</span> – ${esc(m.opp)}`:`${esc(m.opp)} – <span class="us">${team}</span>`;
     const score=home?`${m.gf}–${m.ga}`:`${m.ga}–${m.gf}`;
     const goals=(m.scorers||[]).filter(s=>s.name).map(s=>`<span class="g ${isKid(s.name)?"me":""}">${BALL}${esc(s.name)}${s.goals>1?` ×${s.goals}`:""}</span>`).join("");
-    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">🖼️ Immagine</button>`+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">📷 Foto</a>`:"");
-    const act=share+(readOnly?"":(confirmId===m.id
-      ?`<span class="confirm">Eliminare questa partita?</span><button type="button" class="btn btn-ghost btn-sm" data-act="nodel">No</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-id="${m.id}">Elimina</button>`
-      :`<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="${m.id}">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-act="askdel" data-id="${m.id}">Elimina</button>`));
+    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
+    const act=share+(readOnly||confirmId===m.id?"":`<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="${m.id}">${I.edit}Modifica</button>`);
+    const delRow=readOnly?"":(confirmId===m.id
+      ?`<div class="del-row"><span class="confirm">Eliminare questa partita?</span><button type="button" class="btn btn-ghost btn-sm" data-act="nodel">No</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-id="${m.id}">Elimina</button></div>`
+      :`<div class="del-row"><button type="button" class="del-link" data-act="askdel" data-id="${m.id}">${I.del}Elimina partita</button></div>`);
     return `<article class="match ${r}">
       <div class="meta"><span>${m.date?esc(fmtDate(m.date)):(m.n?m.n+"ª partita":"Data da inserire")}</span><span>·</span><span>${esc(m.comp||"")}</span><span>·</span><span>${home?"In casa":"Trasferta"}</span><span class="pill r-${r}">${lab}</span></div>
       <div class="score num" aria-label="Risultato">${score}</div>
@@ -163,7 +166,7 @@ function render(){
       ${(m.presenti||[]).length?`<div class="present"><span class="label">In campo (${m.presenti.length})</span> ${m.presenti.map(n=>`<span class="${isKid(n)?"me":""}">${esc(n.split(" ").slice(-1)[0])}${S.players.filter(p=>p.name.split(" ").slice(-1)[0]===n.split(" ").slice(-1)[0]).length>1?" "+esc(n[0])+".":""}</span>`).join(", ")}</div>`:""}
       ${m.note?`<div class="note"><span class="label">Commento</span>${esc(m.note)}</div>`:(readOnly?"":`<button type="button" class="add-note" data-act="note" data-id="${m.id}">+ Aggiungi commento</button>`)}
       ${picHTML(m)}
-      ${act?`<div class="actions">${act}</div>`:""}
+      ${act?`<div class="actions">${act}</div>`:""}${delRow}
     </article>`}).join("")
     :(list.length?`<div class="empty">Nessuna partita in questa competizione.</div>`
       :`<div class="empty"><strong>Ancora nessuna partita</strong>Le partite compariranno qui dopo il prossimo fischio finale.</div>`);
@@ -324,7 +327,7 @@ const DEFAULT_NEXTS=[{id:"n_lepanto",opp:"Accademia Lepanto",date:"2026-11-08",t
 let editingNext=null,liveFromNext=null;
 function readNexts(){const s=S.settings;let l=null;
   if(s.nextList){try{l=JSON.parse(s.nextList)}catch(_){l=null}}
-  if(!l)l=("nextOpp" in s)?(s.nextOpp?[{id:"n_old",opp:s.nextOpp,date:s.nextDate||"",time:s.nextTime||"",where:s.nextWhere==="casa"?"casa":"trasferta",comp:s.nextComp||"",addr:""}]:[]):DEFAULT_NEXTS.map(x=>Object.assign({},x));
+  if(!l)l=s.nextOpp?[{id:"n_old",opp:s.nextOpp,date:s.nextDate||"",time:s.nextTime||"",where:s.nextWhere==="casa"?"casa":"trasferta",comp:s.nextComp||"",addr:""}]:DEFAULT_NEXTS.map(x=>Object.assign({},x));
   return Array.isArray(l)?l:[]}
 function getNexts(){return readNexts().map(n=>{if(!n.opp||!n.date)return null;const t=new Date(n.date+"T"+(n.time||"00:00")+":00");if(isNaN(t))return null;if(Date.now()>t.getTime()+3*36e5)return null;
   return Object.assign({},n,{start:t,liveFrom:new Date(t.getTime()-45*6e4)})}).filter(Boolean).sort((x,y)=>x.start-y.start)}
@@ -461,7 +464,7 @@ async function shrink(file,max,q){let bmp;try{bmp=await createImageBitmap(file,{
 const b64blob=b=>{const bin=atob(b),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:"image/jpeg"})};
 function picHTML(m){const L=(m.x&&m.x.pics)||[];if(!L.length&&readOnly)return"";
   const th=L.map(p=>`<button type="button" class="ph" data-pic="${esc(p.i)}" data-pm="${esc(m.id)}" aria-label="Apri la foto"><img alt="" data-t="${esc(p.t)}"${PIC[p.t]?` src="${PIC[p.t]}"`:""}></button>`).join("");
-  const add=readOnly||L.length>=30?"":`<label class="btn btn-ghost btn-sm ph-add">📷 Scatta<input type="file" accept="image/*" capture="environment" data-up="${esc(m.id)}" hidden></label><label class="btn btn-ghost btn-sm ph-add">🖼️ Carica foto<input type="file" accept="image/*" multiple data-up="${esc(m.id)}" hidden></label>`;
+  const add=readOnly||L.length>=30?"":`<label class="btn btn-ghost btn-sm ph-add">${I.cam}Scatta<input type="file" accept="image/*" capture="environment" data-up="${esc(m.id)}" hidden></label><label class="btn btn-ghost btn-sm ph-add">${I.img}Carica foto<input type="file" accept="image/*" multiple data-up="${esc(m.id)}" hidden></label>`;
   return `<div class="photos">${th?`<div class="ph-strip">${th}</div>`:""}${add?`<div class="ph-actions">${add}<span class="status" data-pst="${esc(m.id)}"></span></div>`:""}</div>`}
 async function loadPics(){if(!SESSION)return;const todo=[...document.querySelectorAll("img[data-t]:not([src])")];
   const work=async img=>{const t=img.dataset.t;if(PIC[t]){img.src=PIC[t];return}
@@ -554,7 +557,7 @@ async function refresh(force){
     readOnly=j.role!=="admin";
     const prevLive=S.live;S=normState(j.state);VERSION=j.version;LS.set("cache",{state:S,version:VERSION});
     if(liveSeen)notifyLive(prevLive,S.live);liveSeen=true;
-    if(!readOnly&&!persistedNext&&S.matches.length&&!S.settings.nextList&&!("nextOpp" in S.settings)){persistedNext=true;setTimeout(()=>saveNexts(readNexts()),400)}
+    if(!readOnly&&!persistedNext&&S.matches.length&&!S.settings.nextList){persistedNext=true;setTimeout(()=>saveNexts(readNexts()),400)}
     if(force||!busy())render();
     $("offline").hidden=true;
   }catch(e){

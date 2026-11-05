@@ -96,7 +96,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .note{grid-column:1/-1;margin-top:6px;padding:10px 12px;background:var(--surface-2);border-radius:10px;font-size:15px;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere}
 .note .label{display:block;margin-bottom:2px}
 .add-note{grid-column:1/-1;justify-self:start;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:6px 12px;font-size:14px}
-.actions{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
+.del-row{grid-column:1/-1;display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
+.del-link{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--loss);font:inherit;font-weight:600;font-size:14px;padding:8px 12px}
+.del-link svg{width:16px;height:16px}
+.actions .btn,.ph-actions .btn{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;border-radius:12px;line-height:1.1;text-decoration:none;text-align:center}
+.actions .btn svg,.ph-actions .btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .confirm{font-size:14px;color:var(--loss);font-weight:600}
 
 /* rosa */
@@ -339,11 +344,11 @@ details.more[open]>summary{margin-bottom:6px}
 }
 
 /* ---------- foto ---------- */
-.photos{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.photos{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .ph-strip{display:flex;gap:6px;flex-wrap:wrap}
 .ph{width:76px;height:76px;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2,#eef1f8);cursor:pointer;flex:none}
 .ph img{width:100%;height:100%;object-fit:cover;display:block}
-.ph-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ph-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ph-actions .status{grid-column:1/-1}
 .ph-add{cursor:pointer}
 .pic-bg{align-items:center!important;background:rgba(0,0,0,.85)}
 .pic-box{display:flex;flex-direction:column;gap:10px;align-items:center;max-width:96vw}
