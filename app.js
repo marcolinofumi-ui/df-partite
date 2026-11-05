@@ -462,6 +462,15 @@ $("reportBtn").onclick=openReport;
 
 /* ---------- foto della partita (salvate nel Drive del Foglio, visibili solo dopo l'accesso) ---------- */
 const PIC={};let picQ=0;
+const IDB={db:null,open(){return this.db||(this.db=new Promise(res=>{try{const r=indexedDB.open("df_pics",1);r.onupgradeneeded=()=>r.result.createObjectStore("p");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(_){res(null)}}))},
+  async get(k){const d=await this.open();if(!d)return null;return new Promise(res=>{try{const q=d.transaction("p").objectStore("p").get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)}catch(_){res(null)}})},
+  async set(k,v){const d=await this.open();if(!d)return;try{d.transaction("p","readwrite").objectStore("p").put(v,k)}catch(_){}},
+  async clear(){const d=await this.open();if(!d)return;try{d.transaction("p","readwrite").objectStore("p").clear()}catch(_){}}};
+const PICP={};
+function getPic(id){if(PIC[id])return Promise.resolve(PIC[id]);if(PICP[id])return PICP[id];
+  return PICP[id]=(async()=>{try{let b=await IDB.get(id);if(!b){const j=await api("photoGet",{token:SESSION.token,id});b=b64blob(j.data);IDB.set(id,b)}PIC[id]=URL.createObjectURL(b);return PIC[id]}catch(_){return null}finally{delete PICP[id]}})()}
+const putPic=(id,b64)=>{const b=b64blob(b64);PIC[id]=URL.createObjectURL(b);IDB.set(id,b)};
+function prefetchCards(){try{const m=JSON.parse(S.settings.cards||"{}")||{};Object.values(m).forEach(c=>{if(c&&c.i)getPic(c.i).then(u=>{if(u)document.querySelectorAll("img[data-t]").forEach(x=>{if(x.dataset.t===c.i&&!x.getAttribute("src"))x.src=u})})})}catch(_){}}
 async function shrink(file,max,q){let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(_){bmp=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)})}
   const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight;const s=Math.min(1,max/Math.max(w,h));const c=document.createElement("canvas");c.width=Math.round(w*s);c.height=Math.round(h*s);
   c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);return c.toDataURL("image/jpeg",q).split(",")[1]}
@@ -471,8 +480,7 @@ function picHTML(m){const L=(m.x&&m.x.pics)||[];if(!L.length&&readOnly)return"";
   const add=readOnly||L.length>=30?"":`<label class="btn btn-ghost btn-sm ph-add">${I.cam}Scatta<input type="file" accept="image/*" capture="environment" data-up="${esc(m.id)}" hidden></label><label class="btn btn-ghost btn-sm ph-add">${I.img}Carica foto<input type="file" accept="image/*" multiple data-up="${esc(m.id)}" hidden></label>`;
   return `<div class="photos">${th?`<div class="ph-strip">${th}</div>`:""}${add?`<div class="ph-actions">${add}<span class="status" data-pst="${esc(m.id)}"></span></div>`:""}</div>`}
 async function loadPics(){if(!SESSION)return;const todo=[...document.querySelectorAll("img[data-t]:not([src])")];
-  const work=async img=>{const t=img.dataset.t;if(PIC[t]){img.src=PIC[t];return}
-    try{const j=await api("photoGet",{token:SESSION.token,id:t});PIC[t]=URL.createObjectURL(b64blob(j.data));document.querySelectorAll("img[data-t]").forEach(x=>{if(x.dataset.t===t)x.src=PIC[t]})}catch(_){}};
+  const work=async img=>{const t=img.dataset.t;const u=await getPic(t);if(u)document.querySelectorAll("img[data-t]").forEach(x=>{if(x.dataset.t===t)x.src=u})};
   const lanes=[0,1,2].map(async()=>{while(todo.length){const i=todo.shift();if(!i.getAttribute("src"))await work(i)}});await Promise.all(lanes)}
 let picCur=null,picConfirm=false;
 function closePic(){$("picBg").hidden=true;picCur=null;picConfirm=false;$("picDel").textContent="Elimina foto"}
@@ -487,7 +495,7 @@ $("picDel").onclick=async()=>{if(!picCur)return;if(!picConfirm){picConfirm=true;
 $("matches").addEventListener("change",async e=>{const inp=e.target.closest("input[data-up]");if(!inp||!inp.files.length)return;const mid=inp.dataset.up;const files=[...inp.files].slice(0,10);inp.value="";
   const set=t=>{const q=document.querySelector(`[data-pst="${mid}"]`);if(q)q.textContent=t};const added=[];
   try{for(let k=0;k<files.length;k++){set(`Carico ${k+1} di ${files.length}…`);const full=await shrink(files[k],1600,.82),thumb=await shrink(files[k],420,.7);
-      const j=await api("photoUpload",{token:SESSION.token,full,thumb,name:"p"+Date.now()+"_"+k});added.push({i:j.id,t:j.tid});PIC[j.tid]=URL.createObjectURL(b64blob(thumb))}
+      const j=await api("photoUpload",{token:SESSION.token,full,thumb,name:"p"+Date.now()+"_"+k});added.push({i:j.id,t:j.tid});putPic(j.tid,thumb)}
     set("Salvo…");await commit(st=>{const m=st.matches.find(x=>x.id===mid);if(!m)return;m.x=m.x||{};m.x.pics=[...(m.x.pics||[]),...added]});set("")}
   catch(err){set(errMsg(err)||"Caricamento non riuscito.")}});
 
@@ -503,14 +511,14 @@ function openPlayer(id){const p=S.players.find(x=>x.id===id);if(!p)return;const 
   const yellows=sx(x=>(x.yc||[]).some(n=>norm(n)===k)?1:0);const mvps=sx(x=>x.mvp&&norm(x.mvp)===k?1:0);
   const mins=sx(x=>Object.entries(x.min||{}).filter(([n])=>norm(n)===k).reduce((q,[,v])=>q+(+v||0),0));
   let cards={};try{cards=JSON.parse(S.settings.cards||"{}")||{}}catch(_){}const cd=cards[p.id];
-  const cardHtml=(cd?`<div class="fifa"><img alt="Carta di ${esc(p.name)}" data-t="${esc(cd.i)}"${PIC[cd.i]?` src="${PIC[cd.i]}"`:""}></div>`:"")+(readOnly?"":`<div class="fifa-act"><label class="btn btn-ghost btn-sm">${I.cam}${cd?"Cambia carta":"Aggiungi carta"}<input type="file" accept="image/*" id="cardUp" hidden></label><span class="status" id="cardSt"></span></div>`);
+  const cardHtml=(cd?`<div class="fifa" role="img" aria-label="Carta di ${esc(p.name)}"><img alt="" data-t="${esc(cd.i)}"${PIC[cd.i]?` src="${PIC[cd.i]}"`:""}></div>`:"")+(readOnly?"":`<div class="fifa-act"><label class="btn btn-ghost btn-sm">${I.cam}${cd?"Cambia carta":"Aggiungi carta"}<input type="file" accept="image/*" id="cardUp" hidden></label><span class="status" id="cardSt"></span></div>`);
   $("playerSheet").innerHTML=cardHtml+`<h3 id="psName">${esc(p.name)}</h3><span class="label">${esc(p.role||"")}</span>
     <div class="ps-stats"><div><span class="label">Presenze</span><b class="num">${played.length}/${chron.length}</b></div><div><span class="label">Gol</span><b class="num">${goals}</b></div><div><span class="label">Vittorie</span><b class="num">${played.filter(m=>result(m)==="V").length}</b></div>
       <div><span class="label">Assist</span><b class="num">${assists}</b></div><div><span class="label">Ammonizioni</span><b class="num">${yellows}</b></div><div><span class="label">Migliore in campo</span><b class="num">${mvps}</b></div>${mins?`<div><span class="label">Minuti</span><b class="num">${mins}</b></div>`:""}</div>
     <ul class="ps-list">${rows}</ul>
     <div class="sheet-actions"><button type="button" class="btn btn-primary" id="psClose">Chiudi</button></div>`;
   const up=$("cardUp");if(up)up.onchange=async()=>{const f=up.files[0];up.value="";if(!f)return;const set=t=>{$("cardSt").textContent=t};
-    try{set("Carico la carta…");const full=await shrink(f,1400,.85),thumb=await shrink(f,300,.7);const j=await api("photoUpload",{token:SESSION.token,full,thumb,name:"carta_"+Date.now()});PIC[j.id]=URL.createObjectURL(b64blob(full));let old=null;
+    try{set("Carico la carta…");const full=await shrink(f,1000,.82),thumb=await shrink(f,300,.7);const j=await api("photoUpload",{token:SESSION.token,full,thumb,name:"carta_"+Date.now()});putPic(j.id,full);let old=null;
       const ok=await commit(st=>{let m={};try{m=JSON.parse(st.settings.cards||"{}")||{}}catch(_){}old=m[p.id]||null;m[p.id]={i:j.id,t:j.tid};st.settings.cards=JSON.stringify(m)});
       if(ok&&old){api("photoDelete",{token:SESSION.token,ids:[old.i,old.t]}).catch(()=>{})}
       if(ok)openPlayer(id);else set("Non riesco a salvare la carta.")}
@@ -531,7 +539,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeForm();$("sett
 
 /* ---------- accesso ---------- */
 function showLogin(msg){$("app").hidden=true;$("login").hidden=false;$("loginErr").textContent=msg||"";$("loginErr").hidden=!msg;setTimeout(()=>$("lgUser").focus(),50)}
-function logout(msg){SESSION=null;LS.del("session");LS.del("cache");clearTimeout(pollTimer);S=normState({});VERSION=null;showLogin(msg)}
+function logout(msg){SESSION=null;LS.del("session");LS.del("cache");IDB.clear();Object.keys(PIC).forEach(k=>{try{URL.revokeObjectURL(PIC[k])}catch(_){}delete PIC[k]});clearTimeout(pollTimer);S=normState({});VERSION=null;showLogin(msg)}
 $("loginForm").addEventListener("submit",async e=>{e.preventDefault();askNotifyOnce();const btn=$("lgBtn");btn.disabled=true;$("loginErr").hidden=true;
   try{const j=await api("login",{user:$("lgUser").value,pass:$("lgPass").value});SESSION={token:j.token,role:j.role,user:j.user};LS.set("session",SESSION);$("lgPass").value="";await boot()}
   catch(err){$("loginErr").textContent=errMsg(err);$("loginErr").hidden=false}
@@ -589,7 +597,7 @@ async function refresh(force){
     if(liveSeen)notifyLive(prevLive,S.live);liveSeen=true;
     if(!readOnly&&!persistedNext&&S.matches.length&&!S.settings.nextList){persistedNext=true;setTimeout(()=>saveNexts(readNexts()),400)}
     if(force||!busy())render();
-    failN=0;lastOk=Date.now();$("offline").hidden=true;
+    prefetchCards();failN=0;lastOk=Date.now();$("offline").hidden=true;
   }catch(e){
     if(["sessione_scaduta","sessione_non_valida","accesso_richiesto"].includes(e.code)){logout(errMsg(e));return}
     if(e.code==="offline"){failN++;if(failN>=2||navigator.onLine===false){const o=$("offline");o.textContent="Connessione assente o instabile"+(lastOk?" · dati aggiornati alle "+hm(new Date(lastOk)):"")+" · tocca per riprovare";o.hidden=false}}

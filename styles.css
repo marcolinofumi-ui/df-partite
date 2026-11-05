@@ -367,3 +367,5 @@ html{background:var(--bg);min-height:100%;overscroll-behavior-y:none}
 body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 @media (max-width:720px){.tabs{bottom:0;inset-block-end:0;-webkit-transform:translateZ(0);will-change:transform}}
 .fifa img{width:min(210px,60%)}
+.fifa img:not([src]){width:min(210px,60%);aspect-ratio:3/4;border-radius:14px;background:linear-gradient(100deg,var(--surface-2) 30%,var(--line) 50%,var(--surface-2) 70%);background-size:200% 100%;animation:shim 1.2s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}
