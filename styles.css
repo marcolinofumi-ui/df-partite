@@ -137,7 +137,7 @@ textarea{min-height:60px;resize:vertical}
 .scoreinput{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:end}
 .scoreinput input{font-family:var(--display);font-size:28px;font-weight:800;text-align:center}
 .scoreinput .sep{font-family:var(--display);font-size:28px;font-weight:800;padding-bottom:6px}
-.scorer-row{display:grid;grid-template-columns:minmax(0,1fr) 84px 40px;gap:8px;align-items:center}
+.scorer-row,.assist-row{display:grid;grid-template-columns:minmax(0,1fr) 84px 40px;gap:8px;align-items:center}
 .icon-btn{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;height:40px}
 .hint{font-size:13px;color:var(--muted)}
 .hint.warn{color:var(--loss)}
@@ -309,3 +309,33 @@ textarea{min-height:60px;resize:vertical}
 .upc .u-live b{font-variant-numeric:tabular-nums}
 .upc .u-count{font-size:14px;color:var(--muted)}
 .upc .u-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+
+/* ---------- partite in arrivo (elenco) ---------- */
+.upc-wrap{display:flex;flex-direction:column;gap:10px}
+.upc.small .u-teams{font-size:20px}
+.upc .u-map{font-size:14px;color:var(--club);text-decoration:none;font-weight:600}
+.upc .u-map:hover{text-decoration:underline}
+.ntfybar{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;color:var(--muted)}
+.ntfybar a{color:var(--club);font-weight:600}
+/* ---------- statistiche in più ---------- */
+details.more{border:1px solid var(--line);border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;gap:12px}
+details.more>summary{cursor:pointer;font-weight:600;color:var(--club);padding:4px 0}
+details.more[open]>summary{margin-bottom:6px}
+.min-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.min-item{display:flex;align-items:center;gap:6px;font-size:13px;min-width:0}
+.min-item span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.min-item input{width:62px;padding:6px 8px}
+.xline{font-size:14px;margin-top:6px;color:var(--fg)}
+.xline b{font-weight:700}
+.ps-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.reportbar{display:flex;justify-content:center}
+/* ---------- stampa: solo il report ---------- */
+#report{display:none}
+@media print{
+  body>*:not(#report){display:none!important}
+  #report{display:block!important;color:#000;background:#fff;font:12px/1.4 system-ui,sans-serif;padding:0}
+  #report h1{font-size:22px;margin:0 0 4px}#report h2{font-size:15px;margin:18px 0 6px;border-bottom:2px solid #234090;padding-bottom:2px}
+  #report table{width:100%;border-collapse:collapse}#report th,#report td{border-bottom:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top}
+  #report th{background:#eef1f8}#report .r-grid{display:flex;gap:18px;flex-wrap:wrap;margin:8px 0}#report .r-grid div b{display:block;font-size:20px}
+  #report tr{break-inside:avoid}
+}

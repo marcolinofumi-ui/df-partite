@@ -150,7 +150,7 @@ function render(){
     const teams=home?`<span class="us">${team}</span> – ${esc(m.opp)}`:`${esc(m.opp)} – <span class="us">${team}</span>`;
     const score=home?`${m.gf}–${m.ga}`:`${m.ga}–${m.gf}`;
     const goals=(m.scorers||[]).filter(s=>s.name).map(s=>`<span class="g ${isKid(s.name)?"me":""}">${BALL}${esc(s.name)}${s.goals>1?` ×${s.goals}`:""}</span>`).join("");
-    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">Condividi</button>`;
+    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">🖼️ Immagine</button>`+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">📷 Foto</a>`:"");
     const act=share+(readOnly?"":(confirmId===m.id
       ?`<span class="confirm">Eliminare questa partita?</span><button type="button" class="btn btn-ghost btn-sm" data-act="nodel">No</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-id="${m.id}">Elimina</button>`
       :`<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="${m.id}">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-act="askdel" data-id="${m.id}">Elimina</button>`));
@@ -159,6 +159,7 @@ function render(){
       <div class="score num" aria-label="Risultato">${score}</div>
       <div class="teams">${teams}</div>
       ${goals?`<div class="goals-list">${goals}</div>`:""}
+      ${xInfo(m)}
       ${(m.presenti||[]).length?`<div class="present"><span class="label">In campo (${m.presenti.length})</span> ${m.presenti.map(n=>`<span class="${isKid(n)?"me":""}">${esc(n.split(" ").slice(-1)[0])}${S.players.filter(p=>p.name.split(" ").slice(-1)[0]===n.split(" ").slice(-1)[0]).length>1?" "+esc(n[0])+".":""}</span>`).join(", ")}</div>`:""}
       ${m.note?`<div class="note"><span class="label">Commento</span>${esc(m.note)}</div>`:(readOnly?"":`<button type="button" class="add-note" data-act="note" data-id="${m.id}">+ Aggiungi commento</button>`)}
       ${act?`<div class="actions">${act}</div>`:""}
@@ -167,6 +168,11 @@ function render(){
       :`<div class="empty"><strong>Ancora nessuna partita</strong>Le partite compariranno qui dopo il prossimo fischio finale.</div>`);
 }
 
+function xInfo(m){const x=m.x||{};const sh=n=>esc(n.split(" ").slice(-1)[0]);const o=[];
+  if((x.as||[]).length)o.push(`<div class="xline"><b>Assist:</b> ${x.as.map(s=>sh(s.name)+(s.n>1?" ×"+s.n:"")).join(", ")}</div>`);
+  if((x.yc||[]).length)o.push(`<div class="xline"><b>🟨 Ammoniti:</b> ${x.yc.map(sh).join(", ")}</div>`);
+  if(x.mvp)o.push(`<div class="xline"><b>⭐ Migliore in campo:</b> ${esc(x.mvp)}</div>`);
+  return o.join("")}
 /* ---------- form partita ---------- */
 let rowSeq=0;
 function scorerRow(name="",goals=1){
@@ -185,6 +191,14 @@ function checkScorers(){
   else if(gf>0&&tot<gf){h.textContent=`${gf-tot} gol senza marcatore (autogol o da completare).`;h.className="hint"}
   else{h.textContent="";h.className="hint"}
 }
+function assistRow(name="",n=1){const d=document.createElement("div");d.className="assist-row";
+  d.innerHTML=`<input type="text" list="playerList" placeholder="Nome" aria-label="Nome assist" value="${esc(name)}" autocomplete="off"><input type="number" min="1" max="20" inputmode="numeric" aria-label="Assist" value="${n}"><button type="button" class="icon-btn" aria-label="Rimuovi assist">✕</button>`;
+  d.querySelector("button").onclick=()=>d.remove();$("assistRows").appendChild(d)}
+$("addAssist").onclick=()=>{assistRow();const r=document.querySelectorAll(".assist-row");r[r.length-1].querySelector("input").focus()};
+function readExtra(){const as=[...document.querySelectorAll(".assist-row")].map(r=>{const [p,q]=r.querySelectorAll("input");return{name:p.value.trim(),n:Math.max(1,parseInt(q.value)||1)}}).filter(s=>s.name);
+  const yc=[...document.querySelectorAll("#yellowRows input:checked")].map(i=>i.value);const mvp=$("fMvp").value;
+  const min={};document.querySelectorAll("#minRows input").forEach(i=>{const v=parseInt(i.value);if(v>0)min[i.dataset.name]=v});
+  const ph=safeUrl($("fPhotos").value);const x={};if(as.length)x.as=as;if(yc.length)x.yc=yc;if(mvp)x.mvp=mvp;if(Object.keys(min).length)x.min=min;if(ph)x.ph=ph;return x}
 function setWhere(v){$("fWhere").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v)))}
 function openForm(m){
   editingId=m?m.id:null;$("formTitle").textContent=m?"Modifica partita":"Nuova partita";
@@ -194,6 +208,12 @@ function openForm(m){
   const pz=new Set((m?.presenti||[]).map(norm));
   $("presRows").innerHTML=[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map((p,i)=>`<label class="pres-item"><input type="checkbox" id="pr${i}" value="${esc(p.name)}"${pz.has(norm(p.name))?" checked":""}> ${esc(p.name)}</label>`).join("");
   $("scorerRows").innerHTML="";(m?.scorers||[]).forEach(s=>scorerRow(s.name,s.goals));
+  const x=(m&&m.x)||{};const sp=[...S.players].sort((p,q)=>p.name.localeCompare(q.name));
+  $("assistRows").innerHTML="";(x.as||[]).forEach(s=>assistRow(s.name,s.n));
+  const yz=new Set((x.yc||[]).map(norm));$("yellowRows").innerHTML=sp.map((p,i)=>`<label class="pres-item"><input type="checkbox" id="yc${i}" value="${esc(p.name)}"${yz.has(norm(p.name))?" checked":""}> ${esc(p.name)}</label>`).join("");
+  $("fMvp").innerHTML=`<option value="">—</option>`+sp.map(p=>`<option value="${esc(p.name)}"${x.mvp&&norm(x.mvp)===norm(p.name)?" selected":""}>${esc(p.name)}</option>`).join("");
+  const mn=x.min||{};$("minRows").innerHTML=sp.map((p,i)=>`<label class="min-item"><span>${esc(p.name)}</span><input type="number" min="0" max="120" inputmode="numeric" data-name="${esc(p.name)}" value="${mn[p.name]??""}" aria-label="Minuti ${esc(p.name)}"></label>`).join("");
+  $("fPhotos").value=x.ph||"";$("fMore").open=!!(x.as&&x.as.length||x.yc&&x.yc.length||x.mvp||Object.keys(mn).length||x.ph);
   $("formError").hidden=true;checkScorers();$("sheetBg").hidden=false;setTimeout(()=>$("fOpp").focus(),50);
 }
 const closeForm=()=>{$("sheetBg").hidden=true};
@@ -208,7 +228,7 @@ $("matchForm").addEventListener("submit",async e=>{
   const opp=$("fOpp").value.trim();const date=$("fDate").value;
   if(!opp){err.textContent="Inserisci il nome dell'avversario.";err.hidden=false;return}
   const prev=S.matches.find(x=>x.id===editingId);const m={id:editingId||newId("m"),n:prev?prev.n:(Math.max(0,...S.matches.map(x=>x.n||0))+1),date,opp,comp:$("fComp").value,where:$("fWhere").querySelector('[aria-pressed="true"]').dataset.v,
-    gf:Math.max(0,parseInt($("fGF").value)||0),ga:Math.max(0,parseInt($("fGA").value)||0),scorers:readScorers(),presenti:[...document.querySelectorAll("#presRows input:checked")].map(i=>i.value),note:$("fNote").value.trim()};
+    gf:Math.max(0,parseInt($("fGF").value)||0),ga:Math.max(0,parseInt($("fGA").value)||0),scorers:readScorers(),presenti:[...document.querySelectorAll("#presRows input:checked")].map(i=>i.value),note:$("fNote").value.trim(),x:readExtra()};
   $("saveBtn").disabled=true;
   const ok=await commit(st=>{const i=st.matches.findIndex(x=>x.id===m.id);if(i>=0)st.matches[i]=m;else st.matches.push(m)});
   $("saveBtn").disabled=false;
@@ -222,6 +242,7 @@ $("matches").addEventListener("click",async e=>{
   if(b.dataset.act==="note"){openForm(S.matches.find(m=>m.id===id));setTimeout(()=>{$("fNote").scrollIntoView({block:"center"});$("fNote").focus()},80)}
   if(b.dataset.act==="share"){const m=S.matches.find(x=>x.id===id);const txt=shareText(m);
     await shareOut(txt,b);return}
+  if(b.dataset.act==="img"){const m=S.matches.find(x=>x.id===id);const o=b.textContent;b.textContent="…";try{await shareImage(m)}finally{b.textContent=o}return}
   if(b.dataset.act==="askdel"){confirmId=id;render()}
   if(b.dataset.act==="nodel"){confirmId=null;render()}
   if(b.dataset.act==="del"){confirmId=null;await commit(st=>{st.matches=st.matches.filter(m=>m.id!==id)});render()}
@@ -295,45 +316,64 @@ $("liveBox").addEventListener("click",async e=>{const b=e.target.closest("[data-
     st.matches.push({id:newId("m"),n,date:x.date,opp:x.opp,comp:x.comp,where:x.where,gf:x.gf,ga:x.ga,scorers:Object.entries(tally).map(([name,goals])=>({name,goals})),presenti:x.presenti||[],note:""});st.live=null});return}
 });
 
-/* ---------- prossima partita ---------- */
-const DEFAULT_NEXT={opp:"Accademia Lepanto",date:"2026-11-08",time:"11:00",where:"trasferta",comp:""};
-function getNext(){const s=S.settings;const n="nextOpp" in s?{opp:s.nextOpp||"",date:s.nextDate||"",time:s.nextTime||"",where:s.nextWhere==="casa"?"casa":"trasferta",comp:s.nextComp||""}:Object.assign({},DEFAULT_NEXT);
-  if(!n.opp||!n.date)return null;
-  const t=new Date(n.date+"T"+(n.time||"00:00")+":00");if(isNaN(t))return null;
-  if(Date.now()>t.getTime()+3*36e5)return null;
-  n.start=t;n.liveFrom=new Date(t.getTime()-45*6e4);return n}
+/* ---------- partite in arrivo ---------- */
+const DEFAULT_NEXTS=[{id:"n_lepanto",opp:"Accademia Lepanto",date:"2026-11-08",time:"11:00",where:"trasferta",comp:"",addr:""}];
+let editingNext=null,liveFromNext=null;
+function readNexts(){const s=S.settings;let l=null;
+  if(s.nextList){try{l=JSON.parse(s.nextList)}catch(_){l=null}}
+  if(!l)l=("nextOpp" in s)?(s.nextOpp?[{id:"n_old",opp:s.nextOpp,date:s.nextDate||"",time:s.nextTime||"",where:s.nextWhere==="casa"?"casa":"trasferta",comp:s.nextComp||"",addr:""}]:[]):DEFAULT_NEXTS.map(x=>Object.assign({},x));
+  return Array.isArray(l)?l:[]}
+function getNexts(){return readNexts().map(n=>{if(!n.opp||!n.date)return null;const t=new Date(n.date+"T"+(n.time||"00:00")+":00");if(isNaN(t))return null;if(Date.now()>t.getTime()+3*36e5)return null;
+  return Object.assign({},n,{start:t,liveFrom:new Date(t.getTime()-45*6e4)})}).filter(Boolean).sort((x,y)=>x.start-y.start)}
+const getNext=()=>getNexts()[0]||null;
+function saveNexts(list){return commit(st=>{["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(k=>{delete st.settings[k]});
+  st.settings.nextList=JSON.stringify(list.map(x=>({id:x.id,opp:x.opp,date:x.date,time:x.time,where:x.where,comp:x.comp||"",addr:x.addr||""})))})}
 const hm=d=>d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 function nextCountdown(n){const now=Date.now(),st=n.start.getTime(),lf=n.liveFrom.getTime();
   if(now>=st)return"La partita è iniziata.";
   if(now>=lf)return"Convocazioni in corso: la diretta parte adesso.";
   const m=Math.round((st-now)/6e4),d=Math.floor(m/1440),o=Math.floor((m%1440)/60),mi=m%60;
   return"Mancano "+(d?d+" g "+o+" h":o?o+" h "+mi+" min":mi+" min")+" al calcio d'inizio."}
-function renderNext(){const n=getNext();const team=S.settings.team||"DF Academy";
-  const show=!!n&&!S.live;const hosts=[$("nextHome"),$("nextLive")];
-  hosts.forEach(h=>{if(h)h.hidden=!show});
-  const le=$("liveEmpty");if(le)le.hidden=!!(S.live||!readOnly||show);
-  if(!show)return;
-  const home=n.where==="casa";
+const safeUrl=u=>/^https?:\/\//i.test(String(u||"").trim())?String(u).trim():"";
+function nextCard(n,first){const team=S.settings.team||"DF Academy";const home=n.where==="casa";
   const teams=home?`<span class="us">${esc(team)}</span> – ${esc(n.opp)}`:`${esc(n.opp)} – <span class="us">${esc(team)}</span>`;
   const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
-  const acts=readOnly?"":`<div class="u-actions"><button type="button" class="btn btn-primary btn-sm" data-next="live">● Avvia diretta</button><button type="button" class="btn btn-ghost btn-sm" data-next="edit">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-next="del">Rimuovi</button></div>`;
-  const html=`<div class="u-top"><span class="u-badge">IN ARRIVO</span><span>${home?"In casa":"In trasferta"}</span>${n.comp?`<span>· ${esc(n.comp)}</span>`:""}</div>
+  const map=n.addr?`<a class="u-map" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.addr)}">📍 ${esc(n.addr)} · Apri la mappa</a>`:"";
+  const acts=`<div class="u-actions"><button type="button" class="btn btn-ghost btn-sm" data-next="ics" data-id="${esc(n.id)}">📅 Aggiungi al calendario</button>`+(readOnly?"":`<button type="button" class="btn btn-primary btn-sm" data-next="live" data-id="${esc(n.id)}">● Avvia diretta</button><button type="button" class="btn btn-ghost btn-sm" data-next="edit" data-id="${esc(n.id)}">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-next="del" data-id="${esc(n.id)}">Rimuovi</button>`)+`</div>`;
+  return `<div class="upc${first?"":" small"}"><div class="u-top"><span class="u-badge">${first?"PROSSIMA PARTITA":"IN ARRIVO"}</span><span>${home?"In casa":"In trasferta"}</span>${n.comp?`<span>· ${esc(n.comp)}</span>`:""}</div>
     <div class="u-teams">${teams}</div>
-    <div class="u-when">${esc(day)} · ore ${esc(n.time||"")}</div>
-    <div class="u-live">Convocazioni e diretta dalle <b>${hm(n.liveFrom)}</b> (45 minuti prima). Da quel momento qui trovi il risultato in tempo reale.</div>
-    <div class="u-count" data-countdown>${nextCountdown(n)}</div>${acts}`;
-  hosts.forEach(h=>{if(h)h.innerHTML=html});}
-setInterval(()=>{const n=getNext();if(!n||S.live)return;document.querySelectorAll("[data-countdown]").forEach(e=>{e.textContent=nextCountdown(n)})},30000);
-document.addEventListener("click",e=>{const b=e.target.closest("[data-next]");if(!b)return;const a=b.dataset.next;
-  if(a==="live"){const n=getNext();openLiveForm(n);return}
-  if(a==="edit"){openNextForm();return}
-  if(a==="del"){commit(st=>{st.settings.nextOpp="";st.settings.nextDate="";st.settings.nextTime="";st.settings.nextComp=""});return}});
-function openNextForm(){const n=getNext()||{};$("nOpp").value=n.opp||"";$("nDate").value=n.date||"";$("nTime").value=n.time||"";$("nWhere").value=n.where||"trasferta";$("nComp").value=n.comp||"";$("nextErr").hidden=true;$("nextBg").hidden=false;setTimeout(()=>$("nOpp").focus(),50)}
+    <div class="u-when">${esc(day)} · ore ${esc(n.time||"")}</div>${map}
+    <div class="u-live">Convocazioni e diretta dalle <b>${hm(n.liveFrom)}</b> (45 minuti prima).</div>
+    <div class="u-count" data-countdown data-id="${esc(n.id)}">${nextCountdown(n)}</div>${acts}</div>`}
+function renderNext(){const list=getNexts();const hosts=[$("nextHome"),$("nextLive")];
+  const show=!S.live&&(list.length>0||!readOnly);
+  hosts.forEach(h=>{if(h)h.hidden=!show});
+  const le=$("liveEmpty");if(le)le.hidden=!!(S.live||!readOnly||list.length);
+  if(!show)return;
+  const html=list.map((n,i)=>nextCard(n,i===0)).join("")+(readOnly?"":`<button type="button" class="btn btn-ghost btn-sm" data-next="add">+ Aggiungi partita in arrivo</button>`)+(!list.length&&!readOnly?`<div class="status">Nessuna partita in arrivo.</div>`:"");
+  hosts.forEach(h=>{if(h)h.innerHTML=html});
+  const nb=$("ntfyBar");if(nb){const t=S.settings.ntfyTopic;nb.hidden=!t;if(t)nb.innerHTML=`🔔 Vuoi gli avvisi gol anche con l'app chiusa? Installa l'app gratuita <b>ntfy</b> e iscriviti all'argomento <b>${esc(t)}</b>. <a target="_blank" rel="noopener" href="https://ntfy.sh/${encodeURIComponent(t)}">Apri la pagina di iscrizione</a>`}}
+setInterval(()=>{if(S.live)return;const l=getNexts();document.querySelectorAll("[data-countdown]").forEach(e=>{const n=l.find(x=>x.id===e.dataset.id);if(n)e.textContent=nextCountdown(n)})},30000);
+function icsFile(n){const p=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"T"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0")+"00";
+  const e=s=>String(s||"").replace(/[\\,;]/g,"\\$&").replace(/\n/g,"\\n");const team=S.settings.team||"DF Academy";const title=n.where==="casa"?`${team} - ${n.opp}`:`${n.opp} - ${team}`;
+  const stamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+/,"");
+  const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//DF Academy//Partite//IT","BEGIN:VEVENT","UID:"+n.id+"@df-partite","DTSTAMP:"+stamp,"DTSTART:"+p(n.start),"DTEND:"+p(new Date(n.start.getTime()+90*6e4)),
+    "SUMMARY:"+e(title+(n.comp?" ("+n.comp+")":"")),"LOCATION:"+e(n.addr),"DESCRIPTION:"+e("Convocazioni e diretta dalle "+hm(n.liveFrom)),"BEGIN:VALARM","TRIGGER:-PT90M","ACTION:DISPLAY","DESCRIPTION:Partita tra 90 minuti","END:VALARM","END:VEVENT","END:VCALENDAR"];
+  const url=URL.createObjectURL(new Blob([L.join("\r\n")],{type:"text/calendar"}));const x=document.createElement("a");x.href=url;x.download="partita-"+n.date+".ics";document.body.appendChild(x);x.click();x.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-next]");if(!b)return;const a=b.dataset.next,id=b.dataset.id;const n=getNexts().find(x=>x.id===id);
+  if(a==="ics"&&n){icsFile(n);return}
+  if(a==="live"&&n){liveFromNext=n.id;openLiveForm(n);return}
+  if(a==="edit"){openNextForm(readNexts().find(x=>x.id===id));return}
+  if(a==="add"){openNextForm(null);return}
+  if(a==="del"){saveNexts(readNexts().filter(x=>x.id!==id));return}});
+function openNextForm(n){n=n||{};editingNext=n.id||null;$("nOpp").value=n.opp||"";$("nDate").value=n.date||"";$("nTime").value=n.time||"";$("nWhere").value=n.where||"trasferta";$("nComp").value=n.comp||"";$("nAddr").value=n.addr||"";$("nextErr").hidden=true;$("nextBg").hidden=false;setTimeout(()=>$("nOpp").focus(),50)}
 $("nextCancel").onclick=()=>$("nextBg").hidden=true;
 $("nextBg").addEventListener("click",e=>{if(e.target===$("nextBg"))$("nextBg").hidden=true});
 $("nextForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("nOpp").value.trim(),date=$("nDate").value,time=$("nTime").value;
   if(!opp||!date||!time){$("nextErr").textContent="Inserisci avversario, data e ora.";$("nextErr").hidden=false;return}
-  const ok=await commit(st=>{Object.assign(st.settings,{nextOpp:opp,nextDate:date,nextTime:time,nextWhere:$("nWhere").value,nextComp:$("nComp").value.trim()})});
+  const item={id:editingNext||newId("n"),opp,date,time,where:$("nWhere").value,comp:$("nComp").value.trim(),addr:$("nAddr").value.trim()};
+  const list=readNexts();const i=list.findIndex(x=>x.id===item.id);if(i>=0)list[i]=item;else list.push(item);
+  const ok=await saveNexts(list);
   if(ok)$("nextBg").hidden=true;else{$("nextErr").textContent=$("status").textContent||"Non riesco a salvare.";$("nextErr").hidden=false}});
 function openLiveForm(n){$("lOpp").value=n&&n.opp||"";$("lWhere").value=n&&n.where||"casa";$("lComp").value=n&&n.comp||"Campionato";$("liveErr").hidden=true;
   $("lPres").innerHTML=[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map((p,i)=>`<label class="pres-item"><input type="checkbox" id="lp${i}" value="${esc(p.name)}"> ${esc(p.name)}</label>`).join("");
@@ -343,7 +383,7 @@ $("liveBg").addEventListener("click",e=>{if(e.target===$("liveBg"))$("liveBg").h
 $("liveForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("lOpp").value.trim();if(!opp){$("liveErr").textContent="Inserisci l'avversario.";$("liveErr").hidden=false;return}
   const t=new Date();const date=new Date(t.getTime()-t.getTimezoneOffset()*6e4).toISOString().slice(0,10);
   const live={opp,where:$("lWhere").value,comp:$("lComp").value.trim()||"Campionato",date,gf:0,ga:0,events:[],updated:nowHM(),presenti:[...document.querySelectorAll("#lPres input:checked")].map(i=>i.value)};
-  const nx=getNext();const ok=await commit(st=>{st.live=live;if(nx&&nx.opp.toLowerCase()===opp.toLowerCase()){st.settings.nextOpp="";st.settings.nextDate="";st.settings.nextTime="";st.settings.nextComp=""}});if(ok)$("liveBg").hidden=true;else{$("liveErr").textContent=$("status").textContent||"Non riesco ad avviare la diretta.";$("liveErr").hidden=false}});
+  const fromId=liveFromNext;const ok=await commit(st=>{st.live=live;let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const k=l.filter(x=>x.id!==fromId&&!(!fromId&&String(x.opp).toLowerCase()===opp.toLowerCase()));if(k.length!==l.length||!st.settings.nextList){["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(q=>{delete st.settings[q]});st.settings.nextList=JSON.stringify(k)}});liveFromNext=null;if(ok)$("liveBg").hidden=true;else{$("liveErr").textContent=$("status").textContent||"Non riesco ad avviare la diretta.";$("liveErr").hidden=false}});
 
 /* ---------- condividi ---------- */
 async function shareOut(txt,btn){
@@ -357,6 +397,59 @@ function shareText(m){const team=S.settings.team||"DF Academy";const home=m.wher
 $("shareClose").onclick=()=>$("shareBg").hidden=true;
 $("shareBg").addEventListener("click",e=>{if(e.target===$("shareBg"))$("shareBg").hidden=true});
 
+/* ---------- immagine per WhatsApp ---------- */
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
+function wrapLines(g,text,maxW){const w=String(text).split(/\s+/);const out=[];let cur="";w.forEach(x=>{const t=cur?cur+" "+x:x;if(g.measureText(t).width>maxW&&cur){out.push(cur);cur=x}else cur=t});if(cur)out.push(cur);return out}
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+async function matchImage(m){
+  try{await document.fonts.load('800 80px "Saira Condensed"')}catch(_){}
+  const W=1080,H=1350,c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
+  const F='"Saira Condensed","Arial Narrow",Impact,system-ui,sans-serif';
+  const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,"#2a4aa8");gr.addColorStop(1,"#13214f");g.fillStyle=gr;g.fillRect(0,0,W,H);
+  g.fillStyle="#f5e300";g.fillRect(0,0,W,18);g.fillRect(0,H-18,W,18);
+  try{const im=await loadImg("icons/crest-240.png");g.fillStyle="#fff";rr(g,W/2-120,60,240,260,36);g.fill();g.drawImage(im,W/2-100,75,200,216)}catch(_){}
+  g.textAlign="center";
+  const team=S.settings.team||"DF Academy";const home=m.where!=="trasferta";
+  g.fillStyle="#f5e300";g.font=`800 70px ${F}`;g.fillText(team.toUpperCase(),W/2,410);
+  g.fillStyle="#fff";g.font=`600 38px ${F}`;g.fillText([m.comp,m.date?fmtDate(m.date):"",home?"In casa":"In trasferta"].filter(Boolean).join(" · "),W/2,462);
+  const left=home?team:m.opp,right=home?m.opp:team,ls=home?m.gf:m.ga,rs=home?m.ga:m.gf;
+  const name=(txt,y,col)=>{let s=84;g.font=`800 ${s}px ${F}`;while(g.measureText(txt).width>960&&s>30){s-=4;g.font=`800 ${s}px ${F}`}g.fillStyle=col;g.fillText(txt,W/2,y)};
+  name(left.toUpperCase(),590,left===team?"#f5e300":"#fff");
+  g.fillStyle="#fff";g.font=`800 280px ${F}`;g.fillText(`${ls}–${rs}`,W/2,830);
+  name(right.toUpperCase(),940,right===team?"#f5e300":"#fff");
+  const lines=[];const sh=n=>n.split(" ").slice(-1)[0];
+  const gl=(m.scorers||[]).filter(s=>s.name).map(s=>sh(s.name)+(s.goals>1?" ×"+s.goals:"")).join(", ");if(gl)lines.push("Gol: "+gl);
+  const x=m.x||{};if((x.as||[]).length)lines.push("Assist: "+x.as.map(s=>sh(s.name)+(s.n>1?" ×"+s.n:"")).join(", "));
+  if(x.mvp)lines.push("Migliore in campo: "+x.mvp);
+  g.fillStyle="#fff";g.font=`600 44px ${F}`;let y=1030;lines.forEach(t=>{wrapLines(g,t,940).slice(0,2).forEach(l=>{g.fillText(l,W/2,y);y+=56})});
+  g.fillStyle="rgba(255,255,255,.7)";g.font=`600 32px ${F}`;g.fillText((S.settings.season||"Annata 2018").toUpperCase(),W/2,H-50);
+  return new Promise(res=>c.toBlob(res,"image/png"))}
+async function shareImage(m){const blob=await matchImage(m);if(!blob)return;const file=new File([blob],"partita.png",{type:"image/png"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],text:shareText(m)});return}catch(e){if(e&&e.name==="AbortError")return}}
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="partita-"+(m.date||"")+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
+
+/* ---------- report di fine stagione (stampa / PDF) ---------- */
+function openReport(){const team=S.settings.team||"DF Academy";
+  const list=[...S.matches].sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.n||0)-(b.n||0));
+  const cnt=r=>list.filter(m=>result(m)===r).length;const gf=list.reduce((t,m)=>t+(+m.gf||0),0),ga=list.reduce((t,m)=>t+(+m.ga||0),0);
+  const sh=n=>n.split(" ").slice(-1)[0];
+  const mrows=list.map(m=>{const home=m.where!=="trasferta";const sc=home?m.gf+"–"+m.ga:m.ga+"–"+m.gf;const t=home?team+" – "+m.opp:m.opp+" – "+team;
+    return `<tr><td>${esc(m.date?fmtDate(m.date):"")}</td><td>${esc(m.comp||"")}</td><td>${esc(t)}</td><td><b>${sc}</b></td><td>${esc((m.scorers||[]).filter(s=>s.name).map(s=>sh(s.name)+(s.goals>1?" ×"+s.goals:"")).join(", "))}</td></tr>`}).join("");
+  const prow=[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>{const k=norm(p.name);
+    const pr=list.filter(m=>(m.presenti||[]).some(n=>norm(n)===k)).length;
+    const g=list.reduce((t,m)=>t+(m.scorers||[]).filter(s=>norm(s.name)===k).reduce((q,s)=>q+(+s.goals||0),0),0);
+    const as=list.reduce((t,m)=>t+((m.x&&m.x.as)||[]).filter(s=>norm(s.name)===k).reduce((q,s)=>q+(+s.n||0),0),0);
+    const yc=list.filter(m=>((m.x&&m.x.yc)||[]).some(n=>norm(n)===k)).length;const mv=list.filter(m=>m.x&&m.x.mvp&&norm(m.x.mvp)===k).length;
+    const mi=list.reduce((t,m)=>t+Object.entries((m.x&&m.x.min)||{}).filter(([n])=>norm(n)===k).reduce((q,[,v])=>q+(+v||0),0),0);
+    return `<tr><td>${esc(p.name)}</td><td>${esc(p.role||"")}</td><td>${pr}/${list.length}</td><td>${g}</td><td>${as}</td><td>${yc}</td><td>${mv}</td><td>${mi||""}</td></tr>`}).join("");
+  let r=$("report");if(!r){r=document.createElement("div");r.id="report";document.body.appendChild(r)}
+  r.innerHTML=`<h1>${esc(team)} · Report di stagione</h1><div>${esc(S.settings.season||"")}${S.settings.coach?" · Allenatore: "+esc(S.settings.coach):""}</div>
+    <div class="r-grid"><div>Giocate<b>${list.length}</b></div><div>Vittorie<b>${cnt("V")}</b></div><div>Pareggi<b>${cnt("N")}</b></div><div>Sconfitte<b>${cnt("P")}</b></div><div>Gol fatti<b>${gf}</b></div><div>Gol subiti<b>${ga}</b></div></div>
+    <h2>Partite</h2><table><thead><tr><th>Data</th><th>Competizione</th><th>Partita</th><th>Risultato</th><th>Marcatori</th></tr></thead><tbody>${mrows}</tbody></table>
+    <h2>Giocatori</h2><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Presenze</th><th>Gol</th><th>Assist</th><th>Ammonizioni</th><th>Migliore</th><th>Minuti</th></tr></thead><tbody>${prow}</tbody></table>`;
+  window.print()}
+$("reportBtn").onclick=openReport;
+
 /* ---------- scheda giocatore ---------- */
 function openPlayer(id){const p=S.players.find(x=>x.id===id);if(!p)return;const k=norm(p.name);
   const chron=[...S.matches].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.n||0)-(a.n||0));
@@ -364,20 +457,26 @@ function openPlayer(id){const p=S.players.find(x=>x.id===id);if(!p)return;const 
   const goals=chron.reduce((t,m)=>t+((m.scorers||[]).filter(s=>norm(s.name)===k).reduce((a,s)=>a+(+s.goals||0),0)),0);
   const rows=chron.map(m=>{const inn=(m.presenti||[]).some(n=>norm(n)===k);const g=(m.scorers||[]).filter(s=>norm(s.name)===k).reduce((a,s)=>a+(+s.goals||0),0);const home=m.where!=="trasferta";
     return `<li class="${inn?"":"out"}"><span>${m.date?m.date.slice(8,10)+"/"+m.date.slice(5,7):"–"}</span><span>${esc(m.opp)} <span class="res">${home?m.gf+"–"+m.ga:m.ga+"–"+m.gf}</span></span><span>${inn?(g?`<span class="gl">${g} ${g>1?"gol":"gol"}</span>`:"in campo"):"assente"}</span></li>`}).join("");
+  const sx=(f)=>chron.reduce((t,m)=>t+f(m.x||{}),0);
+  const assists=sx(x=>(x.as||[]).filter(s=>norm(s.name)===k).reduce((q,s)=>q+(+s.n||0),0));
+  const yellows=sx(x=>(x.yc||[]).some(n=>norm(n)===k)?1:0);const mvps=sx(x=>x.mvp&&norm(x.mvp)===k?1:0);
+  const mins=sx(x=>Object.entries(x.min||{}).filter(([n])=>norm(n)===k).reduce((q,[,v])=>q+(+v||0),0));
   $("playerSheet").innerHTML=`<h3 id="psName">${esc(p.name)}</h3><span class="label">${esc(p.role||"")}</span>
-    <div class="ps-stats"><div><span class="label">Presenze</span><b class="num">${played.length}/${chron.length}</b></div><div><span class="label">Gol</span><b class="num">${goals}</b></div><div><span class="label">Vittorie</span><b class="num">${played.filter(m=>result(m)==="V").length}</b></div></div>
+    <div class="ps-stats"><div><span class="label">Presenze</span><b class="num">${played.length}/${chron.length}</b></div><div><span class="label">Gol</span><b class="num">${goals}</b></div><div><span class="label">Vittorie</span><b class="num">${played.filter(m=>result(m)==="V").length}</b></div>
+      <div><span class="label">Assist</span><b class="num">${assists}</b></div><div><span class="label">Ammonizioni</span><b class="num">${yellows}</b></div><div><span class="label">Migliore in campo</span><b class="num">${mvps}</b></div>${mins?`<div><span class="label">Minuti</span><b class="num">${mins}</b></div>`:""}</div>
     <ul class="ps-list">${rows}</ul>
     <div class="sheet-actions"><button type="button" class="btn btn-primary" id="psClose">Chiudi</button></div>`;
   $("playerBg").hidden=false;$("psClose").onclick=()=>$("playerBg").hidden=true;setTimeout(()=>$("psClose").focus(),50);}
 $("playerBg").addEventListener("click",e=>{if(e.target===$("playerBg"))$("playerBg").hidden=true});
 
 /* ---------- impostazioni ---------- */
-$("settingsBtn").onclick=()=>{$("sKid").value=S.settings.kid||"";$("sTeam").value=S.settings.team||"DF Academy";$("sSeason").value=S.settings.season||"";$("sCoach").value=S.settings.coach||"";$("sAlias").value=S.settings.coachAlias||"";$("settingsBg").hidden=false;setTimeout(()=>$("sKid").focus(),50)};
+$("settingsBtn").onclick=()=>{$("sKid").value=S.settings.kid||"";$("sTeam").value=S.settings.team||"DF Academy";$("sSeason").value=S.settings.season||"";$("sCoach").value=S.settings.coach||"";$("sAlias").value=S.settings.coachAlias||"";$("sNtfy").value=S.settings.ntfyTopic||"";$("settingsBg").hidden=false;setTimeout(()=>$("sKid").focus(),50)};
 $("settingsCancel").onclick=()=>$("settingsBg").hidden=true;
 $("settingsBg").addEventListener("click",e=>{if(e.target===$("settingsBg"))$("settingsBg").hidden=true});
 $("settingsForm").addEventListener("submit",async e=>{e.preventDefault();
   const s={kid:$("sKid").value.trim(),team:$("sTeam").value.trim()||"DF Academy",season:$("sSeason").value.trim()||"Stagione 2026/27",coach:$("sCoach").value.trim(),coachAlias:$("sAlias").value.trim()};
-  $("settingsBg").hidden=true;await commit(st=>{st.settings=s});});
+  s.ntfyTopic=$("sNtfy").value.trim().replace(/[^A-Za-z0-9_-]/g,"");
+  $("settingsBg").hidden=true;await commit(st=>{Object.assign(st.settings,s)});});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeForm();$("settingsBg").hidden=true;$("playerBg").hidden=true;$("shareBg").hidden=true;$("liveBg").hidden=true}});
 
 

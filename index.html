@@ -52,13 +52,14 @@
     <button type="button" data-tab="rosa"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 3-6 6-6s6 2 6 6M16 5a3 3 0 010 6M18 14c2 .7 3 2.600 3 6"/></svg><span>Rosa</span></button>
   </nav>
 
-  <section class="upc" id="nextLive" data-pane="live" hidden></section>
+  <section class="upc-wrap" id="nextLive" data-pane="live" hidden></section>
+  <p class="ntfybar" id="ntfyBar" data-pane="live" hidden></p>
   <section class="live-sec" id="liveSec" data-pane="live" aria-label="Diretta" hidden>
     <div id="liveBox"></div>
   </section>
   <p class="empty-pane" id="liveEmpty" data-pane="live" hidden>Nessuna partita in diretta in questo momento. Quando inizia, la vedi qui e arriva un avviso a ogni gol.</p>
 
-  <section class="upc" id="nextHome" data-pane="home" hidden></section>
+  <section class="upc-wrap" id="nextHome" data-pane="home" hidden></section>
   <section class="highlight" id="highlight" data-pane="home" aria-label="Momento della stagione"></section>
 
   <section class="board" data-pane="home" aria-label="Riepilogo stagione">
@@ -85,6 +86,8 @@
       <div id="homeAway" class="ha"></div>
     </figure>
   </section>
+
+  <div class="reportbar" data-pane="home"><button type="button" class="btn btn-ghost" id="reportBtn">🖨️ Report di stagione (stampa / PDF)</button></div>
 
   <section class="section" data-pane="rosa" aria-labelledby="hRoster">
     <div class="section-head">
@@ -140,6 +143,14 @@
         <span class="hint" id="scorerHint"></span>
       </div>
     </div>
+    <details class="more" id="fMore">
+      <summary>Statistiche in più (assist, ammonizioni, migliore in campo, minuti, foto)</summary>
+      <div class="field"><span class="label">Assist</span><div id="assistRows" style="display:flex;flex-direction:column;gap:8px"></div><button type="button" class="btn btn-ghost btn-sm" id="addAssist" style="align-self:flex-start">+ Assist</button></div>
+      <div class="field"><span class="label">Ammoniti</span><div id="yellowRows" class="pres-grid"></div></div>
+      <label class="field"><span class="label">Migliore in campo</span><select id="fMvp"></select></label>
+      <div class="field"><span class="label">Minuti giocati (facoltativo)</span><div id="minRows" class="min-grid"></div></div>
+      <label class="field"><span class="label">Link a foto o video (cartella Drive, ecc.)</span><input type="url" id="fPhotos" placeholder="https://…" autocomplete="off"></label>
+    </details>
     <label class="field"><span class="label">Commento sulla partita</span><textarea id="fNote" rows="4" placeholder="Com'è andata: azioni, parate, momenti da ricordare"></textarea></label>
     <div class="hint warn" id="formError" hidden></div>
     <div class="sheet-actions">
@@ -156,6 +167,8 @@
     <label class="field"><span class="label">Nome squadra</span><input type="text" id="sTeam" autocomplete="off"></label>
     <div class="row"><label class="field"><span class="label">Allenatore</span><input type="text" id="sCoach" autocomplete="off"></label><label class="field"><span class="label">Soprannome</span><input type="text" id="sAlias" autocomplete="off"></label></div>
     <label class="field"><span class="label">Categoria / stagione</span><input type="text" id="sSeason" autocomplete="off" placeholder="es. Pulcini 2017 · 2026/27"></label>
+    <label class="field"><span class="label">Argomento ntfy per gli avvisi con app chiusa (facoltativo)</span><input type="text" id="sNtfy" autocomplete="off" placeholder="es. dfacademy2018-k7q2x9" spellcheck="false"></label>
+    <div class="hint">Scegli un nome lungo e difficile da indovinare, solo lettere, numeri, - e _. Lo stesso nome lo usano i genitori nell'app ntfy.</div>
     <div class="sheet-actions">
       <button type="button" class="btn btn-ghost" id="settingsCancel">Annulla</button>
       <button type="submit" class="btn btn-primary">Salva</button>
@@ -206,6 +219,7 @@
       <label class="field"><span class="label">Dove</span><select id="nWhere"><option value="casa">In casa</option><option value="trasferta">In trasferta</option></select></label>
       <label class="field"><span class="label">Competizione</span><input type="text" id="nComp" autocomplete="off" list="compList" placeholder="facoltativo"></label>
     </div>
+    <label class="field"><span class="label">Indirizzo del campo (facoltativo)</span><input type="text" id="nAddr" autocomplete="off" placeholder="es. Via Roma 1, Velletri"></label>
     <div class="hint" id="nHint">La diretta e le convocazioni sono indicate 45 minuti prima dell'inizio.</div>
     <div class="hint warn" id="nextErr" hidden></div>
     <div class="sheet-actions">
