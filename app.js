@@ -156,7 +156,7 @@ function render(){
     const teams=home?`<span class="us">${team}</span> – ${esc(m.opp)}`:`${esc(m.opp)} – <span class="us">${team}</span>`;
     const score=home?`${m.gf}–${m.ga}`:`${m.ga}–${m.gf}`;
     const goals=(m.scorers||[]).filter(s=>s.name).map(s=>`<span class="g ${isKid(s.name)?"me":""}">${BALL}${esc(s.name)}${s.goals>1?` ×${s.goals}`:""}</span>`).join("");
-    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
+    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
     const act=share+(readOnly||confirmId===m.id?"":`<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="${m.id}">${I.edit}Modifica</button>`);
     const delRow=readOnly?"":(confirmId===m.id
       ?`<div class="del-row"><span class="confirm">Eliminare questa partita?</span><button type="button" class="btn btn-ghost btn-sm" data-act="nodel">No</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-id="${m.id}">Elimina</button></div>`
@@ -238,7 +238,7 @@ $("matchForm").addEventListener("submit",async e=>{
   const opp=$("fOpp").value.trim();const date=$("fDate").value;
   if(!opp){err.textContent="Inserisci il nome dell'avversario.";err.hidden=false;return}
   const prev=S.matches.find(x=>x.id===editingId);const m={id:editingId||newId("m"),n:prev?prev.n:(Math.max(0,...S.matches.map(x=>x.n||0))+1),date,opp,comp:$("fComp").value,where:$("fWhere").querySelector('[aria-pressed="true"]').dataset.v,
-    gf:Math.max(0,parseInt($("fGF").value)||0),ga:Math.max(0,parseInt($("fGA").value)||0),scorers:readScorers(),presenti:[...document.querySelectorAll("#presRows input:checked")].map(i=>i.value),note:$("fNote").value.trim(),x:Object.assign(readExtra(),prev&&prev.x&&prev.x.pics?{pics:prev.x.pics}:{})};
+    gf:Math.max(0,parseInt($("fGF").value)||0),ga:Math.max(0,parseInt($("fGA").value)||0),scorers:readScorers(),presenti:[...document.querySelectorAll("#presRows input:checked")].map(i=>i.value),note:$("fNote").value.trim(),x:Object.assign(readExtra(),prev&&prev.x?Object.assign({},prev.x.pics?{pics:prev.x.pics}:{},prev.x.poster?{poster:prev.x.poster}:{}):{})};
   $("saveBtn").disabled=true;
   const ok=await commit(st=>{const i=st.matches.findIndex(x=>x.id===m.id);if(i>=0)st.matches[i]=m;else st.matches.push(m)});
   $("saveBtn").disabled=false;
@@ -320,14 +320,15 @@ $("liveBox").addEventListener("click",async e=>{const b=e.target.closest("[data-
   if(a==="undo"){await commit(st=>{const x=st.live;const ev=(x.events||[]).pop();if(ev){if(ev.type==="gol")x.gf=Math.max(0,x.gf-1);if(ev.type==="golavv")x.ga=Math.max(0,x.ga-1)}x.updated=nowHM()});return}
   if(a==="end"||a==="cancel"){liveConfirm=a;renderLive();return}
   if(a==="no"){liveConfirm=null;renderLive();return}
-  if(a==="cancelok"){liveConfirm=null;await commit(st=>{st.live=null});return}
+  if(a==="cancelok"){liveConfirm=null;await commit(st=>{const x=st.live;st.live=null;let src=x&&x.from;if(!src&&x&&String(x.opp).toLowerCase()===DEFAULT_NEXTS[0].opp.toLowerCase())src=Object.assign({},DEFAULT_NEXTS[0]);
+      if(src){let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=[];if(!l.some(y=>y.id===src.id)){l.push(src);st.settings.nextList=JSON.stringify(l)}}});return}
   if(a==="endok"){liveConfirm=null;await commit(st=>{const x=st.live;if(!x)return;const tally={};(x.events||[]).filter(ev=>ev.type==="gol"&&ev.scorer).forEach(ev=>{tally[ev.scorer]=(tally[ev.scorer]||0)+1});
     const n=Math.max(0,...st.matches.map(m=>m.n||0))+1;
-    st.matches.push({id:newId("m"),n,date:x.date,opp:x.opp,comp:x.comp,where:x.where,gf:x.gf,ga:x.ga,scorers:Object.entries(tally).map(([name,goals])=>({name,goals})),presenti:x.presenti||[],note:""});st.live=null});return}
+    st.matches.push({id:newId("m"),n,date:x.date,opp:x.opp,comp:x.comp,where:x.where,gf:x.gf,ga:x.ga,scorers:Object.entries(tally).map(([name,goals])=>({name,goals})),presenti:x.presenti||[],note:"",...(x.from&&x.from.poster?{x:{poster:x.from.poster}}:{})});st.live=null});return}
 });
 
 /* ---------- partite in arrivo ---------- */
-const DEFAULT_NEXTS=[{id:"n_lepanto",opp:"Accademia Lepanto",date:"2026-11-08",time:"11:00",where:"trasferta",comp:"",addr:""}];
+const DEFAULT_NEXTS=[{id:"n_lepanto",opp:"Accademia Lepanto",date:"2026-11-08",time:"11:00",where:"trasferta",comp:"",addr:"Via Frascineto, 67, 00173 Roma RM"}];
 let editingNext=null,liveFromNext=null;
 function readNexts(){const s=S.settings;let l=null;
   if(s.nextList){try{l=JSON.parse(s.nextList)}catch(_){l=null}}
@@ -337,7 +338,7 @@ function getNexts(){return readNexts().map(n=>{if(!n.opp||!n.date)return null;co
   return Object.assign({},n,{start:t,liveFrom:new Date(t.getTime()-45*6e4)})}).filter(Boolean).sort((x,y)=>x.start-y.start)}
 const getNext=()=>getNexts()[0]||null;
 function saveNexts(list){return commit(st=>{["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(k=>{delete st.settings[k]});
-  st.settings.nextList=JSON.stringify(list.map(x=>({id:x.id,opp:x.opp,date:x.date,time:x.time,where:x.where,comp:x.comp||"",addr:x.addr||""})))})}
+  st.settings.nextList=JSON.stringify(list.map(x=>({id:x.id,opp:x.opp,date:x.date,time:x.time,where:x.where,comp:x.comp||"",addr:x.addr||"",poster:x.poster||null})))})}
 const hm=d=>d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 function nextCountdown(n){const now=Date.now(),st=n.start.getTime(),lf=n.liveFrom.getTime();
   if(now>=st)return"La partita è iniziata.";
@@ -354,7 +355,23 @@ function nextCard(n,first){const team=S.settings.team||"DF Academy";const home=n
     <div class="u-teams">${teams}</div>
     <div class="u-when">${esc(day)} · ore ${esc(n.time||"")}</div>${map}
     <div class="u-live">Convocazioni e diretta dalle <b>${hm(n.liveFrom)}</b> (45 minuti prima).</div>
-    <div class="u-count" data-countdown data-id="${esc(n.id)}">${nextCountdown(n)}</div>${acts}</div>`}
+    <div class="u-count" data-countdown data-id="${esc(n.id)}">${nextCountdown(n)}</div>${posterBlock(n)}${acts}${posterAdmin(n)}</div>`}
+function posterBlock(n){const p=n.poster;if(!p||!p.i)return"";
+  return `<button type="button" class="poster" data-poster-open="${esc(n.id)}" aria-label="Apri la locandina"><span class="pt"><img alt="" data-t="${esc(p.t||p.i)}"${PIC[p.t||p.i]?` src="${PIC[p.t||p.i]}"`:""}></span><span class="pl"><b>Locandina della partita</b><small>Tocca per aprirla a schermo intero</small></span></button>`}
+function posterAdmin(n){if(readOnly)return"";const has=n.poster&&n.poster.i;
+  return `<div class="padm"><label class="btn btn-ghost btn-sm">${I.img}${has?"Cambia locandina":"Aggiungi locandina"}<input type="file" accept="image/*" data-pup="${esc(n.id)}" hidden></label>${has?`<button type="button" class="btn btn-ghost btn-sm" data-pdel="${esc(n.id)}">Rimuovi locandina</button>`:""}<span class="status" data-pst="p_${esc(n.id)}"></span></div>`}
+function openPoster(p){if(!p||!p.i)return;picCur=null;picConfirm=false;$("picDel").hidden=true;$("picImg").src=PIC[p.i]||PIC[p.t]||"";$("picBg").hidden=false;
+  getPic(p.i).then(u=>{if(u&&!$("picBg").hidden&&$("picDel").hidden)$("picImg").src=u})}
+document.addEventListener("click",e=>{const o=e.target.closest("[data-poster-open]");if(o){const n=getNexts().find(x=>x.id===o.dataset.posterOpen);if(n)openPoster(n.poster);return}
+  const m=e.target.closest("[data-poster-match]");if(m){const x=S.matches.find(y=>y.id===m.dataset.posterMatch);if(x&&x.x)openPoster(x.x.poster);return}
+  const d=e.target.closest("[data-pdel]");if(d){const id=d.dataset.pdel;const old=(readNexts().find(x=>x.id===id)||{}).poster;
+    commit(st=>{let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const it=l.find(x=>x.id===id);if(it)it.poster=null;st.settings.nextList=JSON.stringify(l)}).then(ok=>{if(ok&&old)api("photoDelete",{token:SESSION.token,ids:[old.i,old.t]}).catch(()=>{})})}});
+document.addEventListener("change",async e=>{const inp=e.target.closest("input[data-pup]");if(!inp||!inp.files.length)return;const id=inp.dataset.pup,f=inp.files[0];inp.value="";
+  const set=t=>{const q=document.querySelector(`[data-pst="p_${id}"]`);if(q)q.textContent=t};
+  try{set("Carico la locandina…");const full=await shrink(f,1400,.85),thumb=await shrink(f,300,.7);const j=await api("photoUpload",{token:SESSION.token,full,thumb,name:"locandina_"+Date.now()});putPic(j.id,full);putPic(j.tid,thumb);let old=null;
+    const ok=await commit(st=>{let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const it=l.find(x=>x.id===id);if(!it)return;old=it.poster||null;it.poster={i:j.id,t:j.tid};st.settings.nextList=JSON.stringify(l)});
+    if(ok&&old)api("photoDelete",{token:SESSION.token,ids:[old.i,old.t]}).catch(()=>{});set(ok?"":"Non riesco a salvare la locandina.")}
+  catch(err){set(errMsg(err)||"Caricamento non riuscito.")}});
 function renderNext(){const list=getNexts();const hosts=[$("nextHome"),$("nextLive")];
   const show=!S.live&&(list.length>0||!readOnly);
   hosts.forEach(h=>{if(h)h.hidden=!show});
@@ -382,7 +399,7 @@ $("nextBg").addEventListener("click",e=>{if(e.target===$("nextBg"))$("nextBg").h
 $("nextForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("nOpp").value.trim(),date=$("nDate").value,time=$("nTime").value;
   if(!opp||!date||!time){$("nextErr").textContent="Inserisci avversario, data e ora.";$("nextErr").hidden=false;return}
   const item={id:editingNext||newId("n"),opp,date,time,where:$("nWhere").value,comp:$("nComp").value.trim(),addr:$("nAddr").value.trim()};
-  const list=readNexts();const i=list.findIndex(x=>x.id===item.id);if(i>=0)list[i]=item;else list.push(item);
+  const list=readNexts();const i=list.findIndex(x=>x.id===item.id);if(i>=0){item.poster=list[i].poster||null;list[i]=item}else list.push(item);
   const ok=await saveNexts(list);
   if(ok)$("nextBg").hidden=true;else{$("nextErr").textContent=$("status").textContent||"Non riesco a salvare.";$("nextErr").hidden=false}});
 function openLiveForm(n){$("lOpp").value=n&&n.opp||"";$("lWhere").value=n&&n.where||"casa";$("lComp").value=n&&n.comp||"Campionato";$("liveErr").hidden=true;
@@ -393,7 +410,7 @@ $("liveBg").addEventListener("click",e=>{if(e.target===$("liveBg"))$("liveBg").h
 $("liveForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("lOpp").value.trim();if(!opp){$("liveErr").textContent="Inserisci l'avversario.";$("liveErr").hidden=false;return}
   const t=new Date();const date=new Date(t.getTime()-t.getTimezoneOffset()*6e4).toISOString().slice(0,10);
   const live={opp,where:$("lWhere").value,comp:$("lComp").value.trim()||"Campionato",date,gf:0,ga:0,events:[],updated:nowHM(),presenti:[...document.querySelectorAll("#lPres input:checked")].map(i=>i.value)};
-  const fromId=liveFromNext;const ok=await commit(st=>{st.live=live;let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const k=l.filter(x=>x.id!==fromId&&!(!fromId&&String(x.opp).toLowerCase()===opp.toLowerCase()));if(k.length!==l.length||!st.settings.nextList){["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(q=>{delete st.settings[q]});st.settings.nextList=JSON.stringify(k)}});liveFromNext=null;if(ok)$("liveBg").hidden=true;else{$("liveErr").textContent=$("status").textContent||"Non riesco ad avviare la diretta.";$("liveErr").hidden=false}});
+  const fromId=liveFromNext;const ok=await commit(st=>{st.live=live;let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const src=fromId?l.find(x=>x.id===fromId):null;if(src&&st.live)st.live.from=src;const k=l.filter(x=>x.id!==fromId&&!(!fromId&&String(x.opp).toLowerCase()===opp.toLowerCase()));if(k.length!==l.length||!st.settings.nextList){["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(q=>{delete st.settings[q]});st.settings.nextList=JSON.stringify(k)}});liveFromNext=null;if(ok)$("liveBg").hidden=true;else{$("liveErr").textContent=$("status").textContent||"Non riesco ad avviare la diretta.";$("liveErr").hidden=false}});
 
 /* ---------- condividi ---------- */
 async function shareOut(txt,btn){
