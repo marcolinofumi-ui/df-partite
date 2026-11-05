@@ -45,13 +45,21 @@
     <button class="btn btn-primary" id="addBtn" type="button">+ Nuova partita</button>
   </header>
 
-  <section class="live-sec" id="liveSec" aria-label="Diretta" hidden>
+  <nav class="tabs" id="tabs" aria-label="Sezioni">
+    <button type="button" data-tab="home" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg><span>Riepilogo</span></button>
+    <button type="button" data-tab="live"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 6.3a8 8 0 010 11.4"/></svg><span>Diretta</span><i class="tdot" id="tabLiveDot" hidden></i></button>
+    <button type="button" data-tab="partite"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg><span>Partite</span></button>
+    <button type="button" data-tab="rosa"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 3-6 6-6s6 2 6 6M16 5a3 3 0 010 6M18 14c2 .7 3 2.600 3 6"/></svg><span>Rosa</span></button>
+  </nav>
+
+  <section class="live-sec" id="liveSec" data-pane="live" aria-label="Diretta" hidden>
     <div id="liveBox"></div>
   </section>
+  <p class="empty-pane" id="liveEmpty" data-pane="live" hidden>Nessuna partita in diretta in questo momento. Quando inizia, la vedi qui e arriva un avviso a ogni gol.</p>
 
-  <section class="highlight" id="highlight" aria-label="Momento della stagione"></section>
+  <section class="highlight" id="highlight" data-pane="home" aria-label="Momento della stagione"></section>
 
-  <section class="board" aria-label="Riepilogo stagione">
+  <section class="board" data-pane="home" aria-label="Riepilogo stagione">
     <div class="cell"><span class="label">Giocate</span><span class="big num" id="sPlayed">0</span></div>
     <div class="cell"><span class="label">V · N · P</span><span class="big num" id="sRecord">0·0·0</span></div>
     <div class="cell"><span class="label">Gol fatti</span><span class="big num" id="sGF">0</span></div>
@@ -61,7 +69,7 @@
     <div class="form-strip"><span class="label">Ultime 5</span><span id="formDots" style="display:flex;gap:6px"></span><span class="status" id="formEmpty">nessuna partita ancora</span></div>
   </section>
 
-  <section class="charts" aria-label="Grafici della stagione">
+  <section class="charts" data-pane="home" aria-label="Grafici della stagione">
     <figure class="chart-card">
       <figcaption><span class="chart-title">Gol per partita</span><span class="legend"><i class="sw sw-gf"></i>Fatti <i class="sw sw-ga"></i>Subiti</span></figcaption>
       <div class="chart-scroll"><svg id="chartGoals" role="img" aria-label="Gol fatti e subiti per partita"></svg></div>
@@ -76,7 +84,7 @@
     </figure>
   </section>
 
-  <section class="section" aria-labelledby="hRoster">
+  <section class="section" data-pane="rosa" aria-labelledby="hRoster">
     <div class="section-head">
       <h2 id="hRoster">La rosa</h2>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="status" id="rosterCount"></span><button class="btn btn-ghost btn-sm" id="settingsBtn" type="button">Impostazioni</button></div>
@@ -90,7 +98,7 @@
   </section>
 
 
-  <section class="section" aria-labelledby="hMatches">
+  <section class="section" data-pane="partite" aria-labelledby="hMatches">
     <div class="section-head">
       <h2 id="hMatches">Partite</h2>
       <div class="filters" id="filters" role="group" aria-label="Filtra per competizione"></div>

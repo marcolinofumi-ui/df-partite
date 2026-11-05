@@ -242,7 +242,13 @@ $("filters").addEventListener("click",e=>{const b=e.target.closest("[data-c]");i
 /* ---------- diretta ---------- */
 const nowHM=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 const shortName=n=>{const p=n.split(" ");return p.length>1?p.slice(1).join(" "):n};
-function renderLive(){updateAlertBar();
+const TABS=["home","live","partite","rosa"];let activeTab=TABS.includes(LS.get("tab"))?LS.get("tab"):"home";
+function setTab(t,noScroll){if(!TABS.includes(t))t="home";activeTab=t;LS.set("tab",t);$("app").dataset.active=t;
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===t?"page":"false"));
+  try{history.replaceState(null,"","#"+t)}catch(_){}
+  if(!noScroll)window.scrollTo({top:0,behavior:"instant"})}
+document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.tab)));
+function renderLive(){updateAlertBar();$("tabLiveDot").hidden=!S.live;const _le=$("liveEmpty");if(_le)_le.hidden=!!(S.live||!readOnly);
   const L=S.live,box=$("liveBox"),sec=$("liveSec");const team=S.settings.team||"DF Academy";
   if(!L){sec.hidden=readOnly;box.innerHTML=readOnly?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button></div>`;return}
   sec.hidden=false;const home=L.where!=="trasferta";
@@ -407,4 +413,5 @@ $("seedBtn").onclick=async()=>{const b=$("seedBtn");b.disabled=true;
   catch(_){setStatus("Non riesco a leggere i dati iniziali.",true)}finally{b.disabled=false}};
 
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
+(function(){const h=(location.hash||"").slice(1);setTab(TABS.includes(h)?h:activeTab,true)})();
 boot();
