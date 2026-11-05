@@ -242,7 +242,7 @@ $("filters").addEventListener("click",e=>{const b=e.target.closest("[data-c]");i
 /* ---------- diretta ---------- */
 const nowHM=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 const shortName=n=>{const p=n.split(" ");return p.length>1?p.slice(1).join(" "):n};
-function renderLive(){
+function renderLive(){updateAlertBar();
   const L=S.live,box=$("liveBox"),sec=$("liveSec");const team=S.settings.team||"DF Academy";
   if(!L){sec.hidden=readOnly;box.innerHTML=readOnly?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button></div>`;return}
   sec.hidden=false;const home=L.where!=="trasferta";
@@ -345,6 +345,24 @@ $("logoutBtn").onclick=()=>logout("");
 
 /* ---------- aggiornamento automatico ---------- */
 const busy=()=>!$("sheetBg").hidden||!$("settingsBg").hidden||!$("liveBg").hidden||livePick||liveConfirm||(document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#app input,#app textarea,#app select"));
+let liveSeen=false,toastTimer;
+function showToast(txt,opp){const t=$("goalToast");t.textContent=txt;t.className="goalToast"+(opp?" opp":"");t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true},9000)}
+function systemNotify(title,body){try{if(!("Notification" in window)||Notification.permission!=="granted")return;
+  if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body,icon:"icons/icon-192.png",badge:"icons/icon-192.png",tag:"df-live",renotify:true,vibrate:[200,100,200]}))}
+  else new Notification(title,{body,icon:"icons/icon-192.png"})}catch(_){}}
+function notifyLive(prev,now){
+  if(!now)return;const team=S.settings.team||"DF Academy";const home=now.where!=="trasferta";
+  const score=home?`${team} ${now.gf}–${now.ga} ${now.opp}`:`${now.opp} ${now.ga}–${now.gf} ${team}`;
+  if(!prev){const m=`Diretta iniziata: ${team} - ${now.opp}`;showToast("🔴 "+m,false);systemNotify("DF Academy",m);return}
+  const pe=(prev.events||[]).length,ne=(now.events||[]);if(ne.length<=pe)return;
+  const fresh=ne.slice(pe).filter(e=>e.type==="gol"||e.type==="golavv");if(!fresh.length)return;
+  const last=fresh[fresh.length-1],ours=last.type==="gol";
+  const head=ours?"⚽ GOL DF ACADEMY!":"Gol avversario";
+  showToast(`${head} ${score}${ours&&last.scorer?" · "+last.scorer:""}`,!ours);
+  try{if(navigator.vibrate)navigator.vibrate(ours?[250,100,250,100,400]:[300])}catch(_){}
+  systemNotify(head,`${score}${ours&&last.scorer?" · segna "+last.scorer:""}`)}
+function updateAlertBar(){const b=$("alertBar");if(!b)return;b.hidden=!(S.live&&"Notification" in window&&Notification.permission==="default")}
+$("alertBtn").onclick=async()=>{try{await Notification.requestPermission()}catch(_){}updateAlertBar()};
 async function refresh(force){
   if(!SESSION||saving)return;
   try{
@@ -352,7 +370,8 @@ async function refresh(force){
     const j=await api("get",{token:SESSION.token});
     if(j.role!==SESSION.role){SESSION.role=j.role;LS.set("session",SESSION)}
     readOnly=j.role!=="admin";
-    S=normState(j.state);VERSION=j.version;LS.set("cache",{state:S,version:VERSION});
+    const prevLive=S.live;S=normState(j.state);VERSION=j.version;LS.set("cache",{state:S,version:VERSION});
+    if(liveSeen)notifyLive(prevLive,S.live);liveSeen=true;
     if(force||!busy())render();
     $("offline").hidden=true;
   }catch(e){
@@ -360,7 +379,7 @@ async function refresh(force){
     if(e.code==="offline")$("offline").hidden=false;
   }
 }
-function schedulePoll(){clearTimeout(pollTimer);if(!SESSION)return;const ms=S.live?15000:90000;pollTimer=setTimeout(async()=>{if(document.visibilityState==="visible")await refresh(false);schedulePoll()},ms)}
+function schedulePoll(){clearTimeout(pollTimer);if(!SESSION)return;const ms=S.live?5000:90000;pollTimer=setTimeout(async()=>{if(document.visibilityState==="visible"||S.live)await refresh(false);schedulePoll()},ms)}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&SESSION){refresh(false).then(schedulePoll)}});
 
 /* ---------- avvio ---------- */
