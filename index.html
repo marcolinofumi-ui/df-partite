@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Partite DF Academy</title>
+<meta name="description" content="Risultati, marcatori, presenze e diretta delle partite della DF Academy annata 2018.">
+<meta name="theme-color" content="#234090">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DF Partite">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="login" id="login" hidden>
+  <form class="login-card" id="loginForm" novalidate>
+    <img src="icons/crest-240.png" alt="Stemma DF Academy" width="96" height="104">
+    <h1>DF Academy<br><span>Le partite</span></h1>
+    <label class="field"><span class="label">Utente</span><input type="text" id="lgUser" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+    <label class="field"><span class="label">Password</span><input type="password" id="lgPass" autocomplete="current-password" required></label>
+    <div class="hint warn" id="loginErr" hidden></div>
+    <button type="submit" class="btn btn-primary" id="lgBtn">Entra</button>
+    <p class="hint">Le credenziali te le dà il referente della squadra.</p>
+  </form>
+</main>
+<div class="wrap" id="app" hidden>
+  <div class="topbar"><span id="whoami"></span><button type="button" class="linkbtn" id="logoutBtn">Esci</button></div>
+  <div class="offline" id="offline" hidden>Sei offline: stai vedendo gli ultimi dati scaricati.</div>
+  <div class="seed" id="seedBox" hidden><span>Il foglio Google è ancora vuoto.</span><button type="button" class="btn btn-primary btn-sm" id="seedBtn">Carica le partite già registrate</button></div>
+  <header class="top">
+    <img class="crest" alt="Stemma DF Academy" src="icons/crest-240.png" width="92" height="99">
+    <div class="titles">
+      <h1><span id="teamName">DF Academy</span><br>Le partite</h1>
+      <div class="season" id="seasonLine">Stagione 2026/27</div>
+    </div>
+    <button class="btn btn-primary" id="addBtn" type="button">+ Nuova partita</button>
+  </header>
+
+  <section class="live-sec" id="liveSec" aria-label="Diretta" hidden>
+    <div id="liveBox"></div>
+  </section>
+
+  <section class="highlight" id="highlight" aria-label="Momento della stagione"></section>
+
+  <section class="board" aria-label="Riepilogo stagione">
+    <div class="cell"><span class="label">Giocate</span><span class="big num" id="sPlayed">0</span></div>
+    <div class="cell"><span class="label">V · N · P</span><span class="big num" id="sRecord">0·0·0</span></div>
+    <div class="cell"><span class="label">Gol fatti</span><span class="big num" id="sGF">0</span></div>
+    <div class="cell"><span class="label">Gol subiti</span><span class="big num" id="sGA">0</span></div>
+    <div class="cell"><span class="label">Serie vittorie</span><span class="big num" id="sStreak">0</span></div>
+    <div class="cell"><span class="label">Media gol</span><span class="big num" id="sAvg">0</span></div>
+    <div class="form-strip"><span class="label">Ultime 5</span><span id="formDots" style="display:flex;gap:6px"></span><span class="status" id="formEmpty">nessuna partita ancora</span></div>
+  </section>
+
+  <section class="charts" aria-label="Grafici della stagione">
+    <figure class="chart-card">
+      <figcaption><span class="chart-title">Gol per partita</span><span class="legend"><i class="sw sw-gf"></i>Fatti <i class="sw sw-ga"></i>Subiti</span></figcaption>
+      <div class="chart-scroll"><svg id="chartGoals" role="img" aria-label="Gol fatti e subiti per partita"></svg></div>
+    </figure>
+    <figure class="chart-card">
+      <figcaption><span class="chart-title">Presenze in campo</span><span class="status" id="presTotal"></span></figcaption>
+      <div id="chartPres" class="hbars"></div>
+    </figure>
+    <figure class="chart-card wide">
+      <figcaption><span class="chart-title">Casa e trasferta</span></figcaption>
+      <div id="homeAway" class="ha"></div>
+    </figure>
+  </section>
+
+  <section class="section" aria-labelledby="hRoster">
+    <div class="section-head">
+      <h2 id="hRoster">La rosa</h2>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="status" id="rosterCount"></span><button class="btn btn-ghost btn-sm" id="settingsBtn" type="button">Impostazioni</button></div>
+    </div>
+    <div class="roster" id="roster"></div>
+    <form class="add-player" id="addPlayerForm" novalidate>
+      <input type="text" id="pName" placeholder="Nome e cognome" aria-label="Nome giocatore" autocomplete="off">
+      <select id="pRole" aria-label="Ruolo"><option>Portiere</option><option selected>Difensore</option><option>Centrocampista</option><option>Attaccante</option><option>Da definire</option></select>
+      <button type="submit" class="btn btn-ghost">+ Aggiungi giocatore</button>
+    </form>
+  </section>
+
+
+  <section class="section" aria-labelledby="hMatches">
+    <div class="section-head">
+      <h2 id="hMatches">Partite</h2>
+      <div class="filters" id="filters" role="group" aria-label="Filtra per competizione"></div>
+    </div>
+    <div class="status" id="status">Caricamento delle partite…</div>
+    <div class="matches" id="matches"></div>
+  </section>
+</div>
+
+<div class="sheet-bg" id="sheetBg" hidden>
+  <form class="sheet" id="matchForm" novalidate>
+    <h3 id="formTitle">Nuova partita</h3>
+    <div class="row">
+      <label class="field"><span class="label">Data</span><input type="date" id="fDate" required></label>
+      <label class="field"><span class="label">Competizione</span>
+        <select id="fComp"><option>Campionato</option><option>Torneo</option><option>Amichevole</option><option>Coppa</option></select></label>
+    </div>
+    <label class="field"><span class="label">Avversario</span><input type="text" id="fOpp" placeholder="es. Polisportiva Roma Nord" required autocomplete="off" list="oppList"></label>
+    <datalist id="oppList"></datalist>
+    <div class="field"><span class="label">Dove</span>
+      <div class="seg" id="fWhere"><button type="button" data-v="casa" aria-pressed="true">In casa</button><button type="button" data-v="trasferta" aria-pressed="false">In trasferta</button></div></div>
+    <div class="scoreinput">
+      <label class="field"><span class="label" id="lblUs">Gol DF</span><input type="number" id="fGF" min="0" max="99" inputmode="numeric" value="0"></label>
+      <span class="sep">–</span>
+      <label class="field"><span class="label">Gol avversari</span><input type="number" id="fGA" min="0" max="99" inputmode="numeric" value="0"></label>
+    </div>
+    <div class="field">
+      <span class="label">Giocatori in campo</span>
+      <div id="presRows" class="pres-grid"></div>
+    </div>
+    <div class="field">
+      <span class="label">Marcatori DF</span>
+      <div id="scorerRows" style="display:flex;flex-direction:column;gap:8px"></div>
+      <datalist id="playerList"></datalist>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn btn-ghost btn-sm" id="addScorer">+ Aggiungi marcatore</button>
+        <span class="hint" id="scorerHint"></span>
+      </div>
+    </div>
+    <label class="field"><span class="label">Commento sulla partita</span><textarea id="fNote" rows="4" placeholder="Com'è andata: azioni, parate, momenti da ricordare"></textarea></label>
+    <div class="hint warn" id="formError" hidden></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="cancelBtn">Annulla</button>
+      <button type="submit" class="btn btn-primary" id="saveBtn">Salva partita</button>
+    </div>
+  </form>
+</div>
+
+<div class="sheet-bg" id="settingsBg" hidden>
+  <form class="sheet" id="settingsForm" novalidate>
+    <h3>Impostazioni</h3>
+    <label class="field"><span class="label">Nome di tuo figlio (come lo scrivi nei marcatori)</span><input type="text" id="sKid" autocomplete="off" list="playerList"></label>
+    <label class="field"><span class="label">Nome squadra</span><input type="text" id="sTeam" autocomplete="off"></label>
+    <div class="row"><label class="field"><span class="label">Allenatore</span><input type="text" id="sCoach" autocomplete="off"></label><label class="field"><span class="label">Soprannome</span><input type="text" id="sAlias" autocomplete="off"></label></div>
+    <label class="field"><span class="label">Categoria / stagione</span><input type="text" id="sSeason" autocomplete="off" placeholder="es. Pulcini 2017 · 2026/27"></label>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="settingsCancel">Annulla</button>
+      <button type="submit" class="btn btn-primary">Salva</button>
+    </div>
+  </form>
+</div>
+
+
+<div class="sheet-bg" id="playerBg" hidden>
+  <div class="sheet" id="playerSheet" role="dialog" aria-modal="true" aria-labelledby="psName"></div>
+</div>
+<div class="sheet-bg" id="shareBg" hidden>
+  <div class="sheet">
+    <h3>Copia il risultato</h3>
+    <p class="hint">Seleziona il testo e copialo per incollarlo nel gruppo.</p>
+    <textarea id="shareText" rows="6" readonly></textarea>
+    <div class="sheet-actions"><button type="button" class="btn btn-primary" id="shareClose">Fatto</button></div>
+  </div>
+</div>
+
+<div class="sheet-bg" id="liveBg" hidden>
+  <form class="sheet" id="liveForm" novalidate>
+    <h3>Avvia diretta</h3>
+    <label class="field"><span class="label">Avversario</span><input type="text" id="lOpp" autocomplete="off" list="oppList" placeholder="es. Grifone"></label>
+    <div class="row">
+      <label class="field"><span class="label">Dove</span><select id="lWhere"><option value="casa">In casa</option><option value="trasferta">In trasferta</option></select></label>
+      <label class="field"><span class="label">Competizione</span><input type="text" id="lComp" autocomplete="off" list="compList" value="Campionato"></label>
+    </div>
+    <datalist id="compList"></datalist>
+    <div class="field"><span class="label">In campo oggi</span><div id="lPres" class="pres-grid"></div></div>
+    <div class="hint warn" id="liveErr" hidden></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="liveCancel">Annulla</button>
+      <button type="submit" class="btn btn-primary">Avvia</button>
+    </div>
+  </form>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,404 @@
+{
+ "matches": [
+  {
+   "id": "qft2bijusnb17l03o49d",
+   "n": 9,
+   "date": "2026-10-31",
+   "opp": "Cynthia",
+   "comp": "Smile Cup",
+   "where": "casa",
+   "gf": 5,
+   "ga": 1,
+   "scorers": [
+    {
+     "name": "Andrea Liberati",
+     "goals": 4
+    },
+    {
+     "name": "Stefano Vecchi",
+     "goals": 1
+    }
+   ],
+   "note": "Si apre la Smile Cup e il Cynthia si presenta come un avversario molto fisico, che rende la partita dura e combattuta. I gialloblù non si scompongono e, con il passare dei minuti, viene fuori tutta la loro qualità. Grande protagonista Andrea Liberati, in grande spolvero e autore di quattro reti, con Vecchi a completare il 5–1. Un esordio nel torneo che mette subito le cose in chiaro.",
+   "presenti": [
+    "Francesco Massimiliani",
+    "Tommaso Bartolomeo",
+    "Tommaso Massimiliani",
+    "Riccardo Marini",
+    "Andrea Liberati",
+    "Cristian Fumi",
+    "Filippo Camisasca",
+    "Stefano Vecchi"
+   ]
+  },
+  {
+   "id": "m-boreale",
+   "n": 10,
+   "date": "2026-10-31",
+   "opp": "Boreale",
+   "comp": "Smile Cup",
+   "where": "casa",
+   "gf": 4,
+   "ga": 2,
+   "scorers": [
+    {
+     "name": "Andrea Liberati",
+     "goals": 2
+    },
+    {
+     "name": "Stefano Vecchi",
+     "goals": 1
+    },
+    {
+     "name": "Filippo Camisasca",
+     "goals": 1
+    }
+   ],
+   "note": "Secondo impegno della Smile Cup contro un Boreale che non si arrende e resta in partita fino alla fine. La DF però tiene sempre in mano il pallino: il vantaggio non scende mai sotto i due gol, i gialloblù non corrono mai rischi e dominano l'incontro. Finisce 4–2, con le reti di Liberati (doppietta), Vecchi e Camisasca.",
+   "presenti": [
+    "Francesco Massimiliani",
+    "Tommaso Bartolomeo",
+    "Tommaso Massimiliani",
+    "Riccardo Marini",
+    "Andrea Liberati",
+    "Cristian Fumi",
+    "Filippo Camisasca",
+    "Stefano Vecchi"
+   ]
+  },
+  {
+   "id": "m-grifone",
+   "n": 11,
+   "date": "2026-10-31",
+   "opp": "Grifone",
+   "comp": "Smile Cup",
+   "where": "casa",
+   "gf": 4,
+   "ga": 0,
+   "scorers": [
+    {
+     "name": "Stefano Vecchi",
+     "goals": 2
+    },
+    {
+     "name": "Andrea Liberati",
+     "goals": 2
+    }
+   ],
+   "note": "Ultima sfida della Smile Cup e grande partita contro il Grifone, con qualità da una parte e dall'altra. Dietro la DF è solida e non concede nulla, poi arrivano cinque minuti a livello astrale: un uno-due-tre micidiale che affossa l'avversario e mette ko il Grifone. Finisce 4–0, con doppiette di Vecchi e Liberati, per chiudere la Smile Cup con tre vittorie su tre.",
+   "presenti": [
+    "Francesco Massimiliani",
+    "Tommaso Bartolomeo",
+    "Tommaso Massimiliani",
+    "Riccardo Marini",
+    "Andrea Liberati",
+    "Cristian Fumi",
+    "Filippo Camisasca",
+    "Stefano Vecchi"
+   ]
+  },
+  {
+   "id": "m-velletri",
+   "n": 5,
+   "date": "2026-10-24",
+   "opp": "VJS Velletri",
+   "comp": "Campionato",
+   "where": "trasferta",
+   "gf": 30,
+   "ga": 2,
+   "scorers": [],
+   "note": "Poco da dire: a Velletri non c'è partita. La differenza in campo è troppo grande, al punto che la VJS gioca con un uomo in più e mister Lucatelli impone ai suoi la regola dei tre tocchi, pena l'uscita dal campo. Nemmeno così la VJS riesce a reagire, e i gialloblù chiudono sul 30–2 allenandosi a giocare veloce e di squadra.",
+   "presenti": [
+    "Tommaso Massimiliani",
+    "Francesco Massimiliani",
+    "Cristian Fumi",
+    "Stefano Vecchi",
+    "Filippo Camisasca",
+    "Tommaso Bartolomeo",
+    "Riccardo Marini",
+    "Andrea Liberati",
+    "Alessandro Iacopini"
+   ]
+  },
+  {
+   "id": "m-grifone-andata",
+   "n": 1,
+   "date": "2026-09-27",
+   "opp": "Grifone",
+   "comp": "Campionato",
+   "where": "trasferta",
+   "gf": 13,
+   "ga": 2,
+   "scorers": [],
+   "note": "Esordio da incorniciare in casa del Grifone. I gialloblù prendono in mano la partita dal primo minuto e non la mollano più: pressing asfissiante, palloni recuperati alti e scambi rapidi che mandano in tilt la difesa avversaria. Finisce 13–2, ma più del risultato resta l'immagine di una squadra corta, unita e affamata, che si diverte e fa divertire. Un debutto che promette grandi cose!",
+   "presenti": [
+    "Tommaso Massimiliani",
+    "Cristian Fumi",
+    "Francesco Massimiliani",
+    "Stefano Vecchi",
+    "Filippo Camisasca",
+    "Tommaso Bartolomeo",
+    "Alessandro Iacopini"
+   ]
+  },
+  {
+   "id": "m-fonte",
+   "n": 2,
+   "date": "2026-10-03",
+   "opp": "Fonte Meravigliosa",
+   "comp": "Campionato",
+   "where": "casa",
+   "gf": 8,
+   "ga": 2,
+   "scorers": [],
+   "note": "",
+   "presenti": [
+    "Filippo Camisasca",
+    "Tommaso Massimiliani",
+    "Alessandro Iacopini",
+    "Francesco Massimiliani",
+    "Andrea Liberati",
+    "Stefano Vecchi",
+    "Riccardo Marini",
+    "Tommaso Bartolomeo"
+   ]
+  },
+  {
+   "id": "m-lazio",
+   "n": 4,
+   "date": "2026-10-11",
+   "opp": "Lazio",
+   "comp": "Campionato",
+   "where": "casa",
+   "gf": 11,
+   "ga": 3,
+   "scorers": [],
+   "note": "Forse la partita che racconta meglio chi sono questi ragazzi. Contro la Lazio i gialloblù si ritrovano sotto 0–3 e sembrano in difficoltà, ma è lì che viene fuori il carattere: con una grinta inaudita la squadra si rimette in piedi, ribalta il risultato e da quel momento non c'è più partita. Gioco sfavillante, avversario surclassato e un 11–3 finale che fotografa la rimonta. Fuori dal campo il tifo è stato un fattore: il sostegno degli spalti ha dato la spinta nei momenti più duri. Una giornata da ricordare: la DF non molla mai!",
+   "presenti": [
+    "Francesco Massimiliani",
+    "Stefano Vecchi",
+    "Filippo Camisasca",
+    "Alessandro Iacopini",
+    "Gabriele Acocella",
+    "Andrea Liberati",
+    "Tommaso Marcucci",
+    "Cristian Fumi",
+    "Joris Bruci",
+    "Iacopo Cecconi"
+   ]
+  },
+  {
+   "id": "m-sancesareo",
+   "n": 3,
+   "date": "2026-10-10",
+   "opp": "San Cesareo",
+   "comp": "Campionato",
+   "where": "trasferta",
+   "gf": 7,
+   "ga": 3,
+   "scorers": [],
+   "presenti": [
+    "Andrea Liberati",
+    "Cristian Fumi",
+    "Filippo Camisasca",
+    "Francesco Massimiliani",
+    "Riccardo Marini",
+    "Stefano Vecchi",
+    "Tommaso Bartolomeo"
+   ],
+   "note": "Vittoria senza brillare sul campo del San Cesareo. I gialloblù restano nettamente superiori e si impongono 7–3, ma la prova è sotto tono: poche idee in costruzione e una squadra un po' timorosa, mai davvero a suo agio con un pallone molto duro. Il risultato non è mai in discussione, la prestazione sì: anche queste partite servono a crescere, e la grinta vista nelle altre gare è pronta a tornare."
+  },
+  {
+   "id": "m-pomezia",
+   "n": 6,
+   "date": "2026-10-25",
+   "opp": "Indomita Pomezia",
+   "comp": "Castle Cup",
+   "where": "trasferta",
+   "gf": 1,
+   "ga": 2,
+   "scorers": [
+    {
+     "name": "Stefano Vecchi",
+     "goals": 1
+    }
+   ],
+   "note": "Debutto ostico alla Castle Cup. La DF approccia la gara tesa e poco fluida, e l'Indomita Pomezia ne approfitta per passare in vantaggio. Il gol subito però sveglia i gialloblù, che da lì in poi surclassano l'avversario a suon di tiri e acciuffano il meritato pareggio con Vecchi. La squadra continua a premere per cercare la vittoria, ma si arrende all'ultimo secondo su una punizione molto dubbia. Una sconfitta che brucia, ma la reazione dopo lo svantaggio è il segnale più bello della giornata.",
+   "presenti": [
+    "Cristian Fumi",
+    "Stefano Vecchi",
+    "Filippo Camisasca",
+    "Andrea Liberati",
+    "Riccardo Marini",
+    "Tommaso Massimiliani",
+    "Francesco Massimiliani",
+    "Alessandro Cavaliere",
+    "Flavio Freddi"
+   ]
+  },
+  {
+   "id": "m-cynthia-cc",
+   "n": 7,
+   "date": "2026-10-25",
+   "opp": "Cynthia",
+   "comp": "Castle Cup",
+   "where": "trasferta",
+   "gf": 6,
+   "ga": 0,
+   "scorers": [
+    {
+     "name": "Andrea Liberati",
+     "goals": 3
+    },
+    {
+     "name": "Filippo Camisasca",
+     "goals": 2
+    },
+    {
+     "name": "Stefano Vecchi",
+     "goals": 1
+    }
+   ],
+   "note": "Partita senza storia contro il Cynthia. I gialloblù prendono subito il controllo e non lo mollano più, trascinati da un Andrea Liberati sugli scudi, autore di una tripletta. Completano il 6–0 la doppietta di Camisasca e il gol di Vecchi. Nonostante il poco tempo a disposizione, il punteggio poteva essere anche più largo.",
+   "presenti": [
+    "Cristian Fumi",
+    "Stefano Vecchi",
+    "Filippo Camisasca",
+    "Andrea Liberati",
+    "Riccardo Marini",
+    "Tommaso Massimiliani",
+    "Francesco Massimiliani",
+    "Alessandro Cavaliere",
+    "Flavio Freddi"
+   ]
+  },
+  {
+   "id": "m-nettuno",
+   "n": 8,
+   "date": "2026-10-25",
+   "opp": "ASD Nettuno",
+   "comp": "Castle Cup",
+   "where": "trasferta",
+   "gf": 8,
+   "ga": 1,
+   "scorers": [
+    {
+     "name": "Filippo Camisasca",
+     "goals": 2
+    },
+    {
+     "name": "Cristian Fumi",
+     "goals": 2
+    },
+    {
+     "name": "Stefano Vecchi",
+     "goals": 2
+    },
+    {
+     "name": "Flavio Freddi",
+     "goals": 1
+    },
+    {
+     "name": "Andrea Liberati",
+     "goals": 1
+    }
+   ],
+   "note": "Partita subito in discesa contro il Nettuno, sbloccata da un bolide di Fumi da fuori area. Da lì la DF gioca in scioltezza e dilaga: doppiette di Camisasca, Fumi e Vecchi, più i gol di Freddi e Liberati, per un 8–1 che chiude in bellezza la giornata della Castle Cup.",
+   "presenti": [
+    "Cristian Fumi",
+    "Stefano Vecchi",
+    "Filippo Camisasca",
+    "Andrea Liberati",
+    "Riccardo Marini",
+    "Tommaso Massimiliani",
+    "Francesco Massimiliani",
+    "Alessandro Cavaliere",
+    "Flavio Freddi"
+   ]
+  }
+ ],
+ "players": [
+  {
+   "id": "pfrancesco-massimiliani",
+   "name": "Francesco Massimiliani",
+   "role": "Portiere"
+  },
+  {
+   "id": "pcristian-fumi",
+   "name": "Cristian Fumi",
+   "role": "Difensore"
+  },
+  {
+   "id": "ptommaso-massimiliani",
+   "name": "Tommaso Massimiliani",
+   "role": "Difensore"
+  },
+  {
+   "id": "palessandro-iacopini",
+   "name": "Alessandro Iacopini",
+   "role": "Difensore"
+  },
+  {
+   "id": "pgabriele-acocella",
+   "name": "Gabriele Acocella",
+   "role": "Difensore"
+  },
+  {
+   "id": "ptommaso-bartolomeo",
+   "name": "Tommaso Bartolomeo",
+   "role": "Difensore"
+  },
+  {
+   "id": "priccardo-marini",
+   "name": "Riccardo Marini",
+   "role": "Difensore"
+  },
+  {
+   "id": "pfilippo-camisasca",
+   "name": "Filippo Camisasca",
+   "role": "Attaccante"
+  },
+  {
+   "id": "pstefano-vecchi",
+   "name": "Stefano Vecchi",
+   "role": "Attaccante"
+  },
+  {
+   "id": "pandrea-liberati",
+   "name": "Andrea Liberati",
+   "role": "Attaccante"
+  },
+  {
+   "id": "pmvw970p30ivo",
+   "name": "Tommaso Marcucci",
+   "role": "Attaccante"
+  },
+  {
+   "id": "pbruci",
+   "name": "Joris Bruci",
+   "role": "Portiere"
+  },
+  {
+   "id": "pcecconi",
+   "name": "Iacopo Cecconi",
+   "role": "Attaccante"
+  },
+  {
+   "id": "pcavaliere",
+   "name": "Alessandro Cavaliere",
+   "role": "Attaccante"
+  },
+  {
+   "id": "pfreddi",
+   "name": "Flavio Freddi",
+   "role": "Difensore"
+  }
+ ],
+ "settings": {
+  "kid": "",
+  "team": "DF Academy",
+  "season": "Annata 2018 · Stagione 2026/27",
+  "coach": "Pierluigi Lucatelli",
+  "coachAlias": "PG"
+ }
+}
