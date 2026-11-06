@@ -377,20 +377,22 @@ $("vidAddForm").addEventListener("submit",async e=>{e.preventDefault();const id=
 const PUSH_ID=(window.DF_CONFIG&&DF_CONFIG.PUSH_APP_ID)||"";
 function pushRow(){const r=$("pushRow");if(!r)return;if(!PUSH_ID||!SESSION||readOnly){r.hidden=true;return}
   const ios=/iP(hone|ad|od)/.test(navigator.userAgent),standalone=navigator.standalone||matchMedia("(display-mode: standalone)").matches;
-  r.hidden=false;
-  if(!("Notification" in window)){r.innerHTML=`<span>🔔 Avvisi sul telefono</span><small>${ios&&!standalone?"Aggiungi l'app alla schermata Home (Condividi → Aggiungi a Home) per attivarli.":"Questo browser non li supporta."}</small>`;return}
-  if(window.__osErr){r.innerHTML=`<span>🔔 Avvisi sul telefono</span><small>Non disponibili: ${esc(window.__osErr)}</small>`;return}
-  const on=window.__pushOn;
-  r.innerHTML=`<span>🔔 Avvisi su diretta, gol e convocazioni</span>${on?'<small>Attivi ✓</small>':'<button type="button" class="btn btn-primary btn-sm" id="pushBtn">Attiva</button>'}`;
-  const b=$("pushBtn");if(b)b.onclick=async()=>{if(!window.__OS){r.innerHTML=`<span>🔔 Avvisi sul telefono</span><small>Si sta ancora caricando: riprova tra qualche secondo.</small>`;return}b.disabled=true;try{await window.__OS.Notifications.requestPermission();try{await window.__OS.login(SESSION.user)}catch(_){}}catch(_){}b.disabled=false;pushState()}}
+  r.hidden=false;const on=!!window.__pushOn;
+  const note=!("Notification" in window)?(ios&&!standalone?"Aggiungi l'app alla schermata Home (Condividi → Aggiungi a Home) per attivarli.":"Questo browser non li supporta."):(window.__osErr?"Errore: "+esc(window.__osErr):(on?"Attivi ✓":(window.__osBusy?"Attivazione…":"")));
+  r.innerHTML=`<span>🔔 Avvisi su diretta, gol e convocazioni</span><button type="button" class="btn btn-primary btn-sm" id="pushBtn">${on?"Riattiva":"Attiva"}</button>${note?`<small class="push-note">${note}</small>`:""}`;
+  $("pushBtn").onclick=async()=>{window.__osErr="";window.__osBusy=true;pushRow();
+    try{if(!window.__OS){window.__osInit=false;initPush();for(let k=0;k<40&&!window.__OS&&!window.__osErr;k++)await new Promise(r=>setTimeout(r,250))}
+      if(window.__OS){await window.__OS.Notifications.requestPermission();try{await window.__OS.login(SESSION.user)}catch(_){}}
+      else if(!window.__osErr)window.__osErr="OneSignal non risponde, riprova"}catch(e){window.__osErr=String(e&&e.message||e)}
+    window.__osBusy=false;pushState()}}
 function pushState(){try{window.__pushOn=!!(window.__OS&&window.__OS.User.PushSubscription.optedIn)}catch(_){window.__pushOn=false}pushRow()}
 function initPush(){if(!PUSH_ID||window.__osInit||!SESSION||readOnly)return;window.__osInit=true;
   window.OneSignalDeferred=window.OneSignalDeferred||[];
   window.OneSignalDeferred.push(async OS=>{try{const base=new URL("./",location.href).pathname;
     await OS.init({appId:PUSH_ID,serviceWorkerPath:base.replace(/^\//,"")+"sw.js",serviceWorkerParam:{scope:base},serviceWorkerOverrideForTypical:true,notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true,promptOptions:{autoPrompt:false,slidedown:{prompts:[]}}});
     window.__OS=OS;try{OS.User.PushSubscription.addEventListener("change",pushState)}catch(_){}
-    if(SESSION)try{await OS.login(SESSION.user)}catch(_){}pushState()}catch(e){window.__osErr=String(e&&e.message||e);pushRow()}});
-  const sc=document.createElement("script");sc.src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";sc.defer=true;sc.onerror=()=>{};document.head.appendChild(sc)}
+    if(SESSION)try{await OS.login(SESSION.user)}catch(_){}pushState()}catch(e){window.__osErr=String(e&&e.message||e);window.__osInit=false;pushRow()}});
+  if(!document.querySelector("script[data-os]")){const sc=document.createElement("script");sc.src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";sc.defer=true;sc.dataset.os="1";sc.onerror=()=>{window.__osErr="impossibile caricare OneSignal (rete?)";window.__osInit=false;pushRow()};document.head.appendChild(sc)}}
 
 /* ---------- diretta ---------- */
 const nowHM=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
