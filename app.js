@@ -600,13 +600,15 @@ function cheer(force){if(!force&&!soundOn())return;const c=audioCtx();if(!c)retu
 function renderSoundBtn(){const r=$("soundRow");if(!r)return;const on=soundOn();
   r.innerHTML=`<button type="button" class="btn btn-ghost btn-sm" id="soundBtn" aria-pressed="${on}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/>${on?'<path d="M16 9a4 4 0 010 6M18.500 6.500a8 8 0 010 11"/>':'<path d="M17 9l5 6M22 9l-5 6"/>'}</svg>Suono al gol: ${on?"attivo":"spento"}</button>`;
   $("soundBtn").onclick=()=>{const v=soundOn()?0:1;LS.set("sound",v);renderSoundBtn();if(v)cheer(true)}}
+/* avvisi solo se la novità è davvero recente: se il telefono si risveglia ore dopo, non ripropone i gol di ieri */
+function isFresh(L,t,mins){try{const [h,m]=String(t||"").split(":").map(Number);if(isNaN(h)||isNaN(m)||!L||!L.date)return false;const d=new Date(L.date+"T00:00:00");d.setHours(h,m,0,0);return Math.abs(Date.now()-d.getTime())<=mins*6e4}catch(_){return false}}
 function notifyLive(prev,now){
   if(!now)return;const team=S.settings.team||"DF Academy";const home=now.where!=="trasferta";
   const score=home?`${team} ${now.gf}–${now.ga} ${now.opp}`:`${now.opp} ${now.ga}–${now.gf} ${team}`;
-  if(!prev){const m=`Diretta iniziata: ${team} - ${now.opp}`;showToast("🔴 "+m,false);systemNotify("DF Academy",m);return}
+  if(!prev){if(!isFresh(now,now.updated||((now.events||[])[0]||{}).t,15))return;const m=`Diretta iniziata: ${team} - ${now.opp}`;showToast("🔴 "+m,false);systemNotify("DF Academy",m);return}
   const pe=(prev.events||[]).length,ne=(now.events||[]);if(ne.length<=pe)return;
   const fresh=ne.slice(pe).filter(e=>e.type==="gol"||e.type==="golavv");if(!fresh.length)return;
-  const last=fresh[fresh.length-1],ours=last.type==="gol";
+  const last=fresh[fresh.length-1],ours=last.type==="gol";if(!isFresh(now,last.t,5))return;
   const head=ours?"⚽ GOL DF ACADEMY!":"Gol avversario";
   showToast(`${head} ${score}${ours&&last.scorer?" · "+last.scorer:""}`,!ours);if(ours){cheer();confetti()}
   try{if(navigator.vibrate)navigator.vibrate(ours?[250,100,250,100,400]:[300])}catch(_){}
