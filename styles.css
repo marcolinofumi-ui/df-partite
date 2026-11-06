@@ -464,3 +464,6 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .push-row small{color:var(--muted)}
 
 .push-row .push-note{flex-basis:100%}
+
+.check{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:14px}.check input{width:18px;height:18px}
+.cv-push-msg{display:block;margin-top:6px;font-size:13px;color:var(--ok,#1a7f37)}.cv-push-msg.bad{color:#b42318}

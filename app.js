@@ -471,8 +471,9 @@ const CONV_ROLES=[["Portiere","Portieri"],["Difensore","Difensori"],["Centrocamp
 const roleOf=p=>CONV_ROLES.slice(0,4).some(r=>r[0]===p.role)?p.role:"Da definire";
 function groupNames(names){return CONV_ROLES.map(([role,label])=>({label,list:names.filter(nm=>{const p=S.players.find(x=>x.name===nm);return (p?roleOf(p):"Da definire")===role}).sort((a,b)=>a.localeCompare(b))})).filter(g=>g.list.length)}
 function dispName(nm,all){const w=nm.trim().split(/\s+/);if(w.length<2)return nm;const sur=w.slice(1).join(" ");const dup=all.some(o=>o!==nm&&o.trim().split(/\s+/).slice(1).join(" ")===sur);return dup?sur+" "+w[0][0]+".":sur}
+const CPM={};
 function convBlock(n){const c=n.conv;if(!c||!c.names||!c.names.length)return"";const all=c.names;
-  return `<details class="conv"><summary><b>Convocazioni</b><span>${esc(c.rit?"ritrovo "+c.rit+" · ":"")}${all.length} convocati</span></summary>${groupNames(all).map(g=>`<div class="cv-g"><h5>${esc(g.label)}</h5><p>${g.list.map(x=>esc(dispName(x,all))).join(" · ")}</p></div>`).join("")}${c.note?`<p class="cv-note">${esc(c.note)}</p>`:""}<button type="button" class="btn btn-ghost btn-sm" data-next="convshare" data-id="${esc(n.id)}">Condividi la convocazione</button></details>`}
+  return `<details class="conv"${CPM[n.id]?" open":""}><summary><b>Convocazioni</b><span>${esc(c.rit?"ritrovo "+c.rit+" · ":"")}${all.length} convocati</span></summary>${groupNames(all).map(g=>`<div class="cv-g"><h5>${esc(g.label)}</h5><p>${g.list.map(x=>esc(dispName(x,all))).join(" · ")}</p></div>`).join("")}${c.note?`<p class="cv-note">${esc(c.note)}</p>`:""}<button type="button" class="btn btn-ghost btn-sm" data-next="convshare" data-id="${esc(n.id)}">Condividi la convocazione</button>${readOnly?"":`<button type="button" class="btn btn-primary btn-sm" data-next="convpush" data-id="${esc(n.id)}">🔔 Avvisa i genitori</button><span class="cv-push-msg${CPM[n.id]&&CPM[n.id].bad?" bad":""}" data-pushmsg="${esc(n.id)}">${esc(CPM[n.id]?CPM[n.id].t:"")}</span>`}</details>`}
 function openConv(n){convFor=n.id;const c=n.conv||{};const has=!!(c.names&&c.names.length);const sel=new Set(has?c.names:S.players.map(p=>p.name));
   $("convMatch").textContent=`${n.opp} · ${n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})} · ore ${n.time||""}`;
   $("cRit").value=c.rit||hm(n.liveFrom);$("cNote").value=c.note||"";$("convErr").hidden=true;
@@ -488,7 +489,7 @@ $("convCancel").onclick=()=>$("convBg").hidden=true;
 $("convBg").addEventListener("click",e=>{if(e.target===$("convBg"))$("convBg").hidden=true});
 async function convDone(share){const conv=readConv();if(!conv.names.length){$("convErr").textContent="Seleziona almeno un convocato.";$("convErr").hidden=false;return}
   if(!await saveConv(conv)){$("convErr").textContent="Non riesco a salvare la convocazione.";$("convErr").hidden=false;return}
-  $("convBg").hidden=true;if(share){const n=getNexts().find(x=>x.id===convFor);if(n){shareConv(n);api("notify",{token:SESSION.token,title:"📋 Convocazioni: "+n.opp,body:(n.conv&&n.conv.rit?"Ritrovo "+n.conv.rit+" · ":"")+(n.conv?n.conv.names.length:0)+" convocati"}).catch(()=>{})}}}
+  $("convBg").hidden=true;if(share){const n=getNexts().find(x=>x.id===convFor);if(n){if($("cPush").checked)sendConvPush(n).then(r=>{CPM[n.id]={t:r.ok?"Avviso inviato ✓":"Avviso non inviato: "+r.msg,bad:!r.ok};renderNext()});shareConv(n)}}}
 $("convSave").onclick=()=>convDone(false);
 $("convForm").addEventListener("submit",e=>{e.preventDefault();convDone(true)});
 function convText(n){const c=n.conv||{names:[]};const team=S.settings.team||"DF Academy";const home=n.where==="casa";
@@ -524,6 +525,17 @@ async function shareConv(n){if(!n.conv||!n.conv.names||!n.conv.names.length)retu
   const file=new File([blob],"convocazioni.png",{type:"image/png"});
   if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],text:convText(n)});return}catch(e){if(e&&e.name==="AbortError")return}}
   const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="convocazioni-"+(n.date||"")+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
+
+
+const PUSHERR={azione_sconosciuta:"Lo script del foglio non è ancora aggiornato per le notifiche.",push_non_configurato:"Manca la chiave di OneSignal nello script del foglio.",push_rifiutato:"OneSignal ha rifiutato l'invio.",non_autorizzato:"Solo gli admin possono inviare avvisi."};
+async function sendConvPush(n){const c=n.conv;if(!c||!c.names||!c.names.length)return{ok:false,msg:"Prima salva una convocazione."};
+  const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+  try{await api("notify",{token:SESSION.token,title:"📋 Convocazioni: "+n.opp,body:`${day.charAt(0).toUpperCase()+day.slice(1)}${n.time?" · ore "+n.time:""}${c.rit?" · ritrovo "+c.rit:""} · ${c.names.length} convocati. Apri l'app per vedere l'elenco.`});return{ok:true}}
+  catch(e){return{ok:false,msg:PUSHERR[e&&e.code]||errMsg(e)}}}
+async function convPush(n,btn){const msg=document.querySelector(`[data-pushmsg="${n.id}"]`);
+  if(btn.dataset.sure!=="1"){btn.dataset.sure="1";btn.textContent="Confermi? Invia a tutti i genitori";setTimeout(()=>{if(btn.isConnected&&btn.dataset.sure==="1"){btn.dataset.sure="";btn.textContent="🔔 Avvisa i genitori"}},5000);return}
+  btn.dataset.sure="";btn.disabled=true;btn.textContent="Invio…";const r=await sendConvPush(n);btn.disabled=false;btn.textContent="🔔 Avvisa i genitori";
+  CPM[n.id]={t:r.ok?"Avviso inviato ✓":r.msg,bad:!r.ok};renderNext()}
 
 /* ---------- partite in arrivo ---------- */
 const DEFAULT_NEXTS=[{id:"n_lepanto",opp:"Accademia Lepanto",date:"2026-11-08",time:"11:00",where:"trasferta",comp:"",addr:"Via Frascineto, 67, 00173 Roma RM"}];
@@ -593,6 +605,7 @@ function icsFile(n){const p=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2
 document.addEventListener("click",e=>{const b=e.target.closest("[data-next]");if(!b)return;const a=b.dataset.next,id=b.dataset.id;const n=getNexts().find(x=>x.id===id);
   if(a==="conv"&&n){openConv(n);return}
   if(a==="convshare"&&n){shareConv(n);return}
+  if(a==="convpush"&&n){convPush(n,e.target.closest("button"));return}
   if(a==="ics"&&n){icsFile(n);return}
   if(a==="live"&&n){liveFromNext=n.id;openLiveForm(n);return}
   if(a==="edit"){openNextForm(readNexts().find(x=>x.id===id));return}
