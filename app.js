@@ -471,14 +471,16 @@ const CONV_ROLES=[["Portiere","Portieri"],["Difensore","Difensori"],["Centrocamp
 const roleOf=p=>CONV_ROLES.slice(0,4).some(r=>r[0]===p.role)?p.role:"Da definire";
 function groupNames(names){return CONV_ROLES.map(([role,label])=>({label,list:names.filter(nm=>{const p=S.players.find(x=>x.name===nm);return (p?roleOf(p):"Da definire")===role}).sort((a,b)=>a.localeCompare(b))})).filter(g=>g.list.length)}
 function dispName(nm,all){const w=nm.trim().split(/\s+/);if(w.length<2)return nm;const sur=w.slice(1).join(" ");const dup=all.some(o=>o!==nm&&o.trim().split(/\s+/).slice(1).join(" ")===sur);return dup?sur+" "+w[0][0]+".":sur}
+const surOf=nm=>{const w=nm.trim().split(/\s+/);return w.length>1?w.slice(1).join(" "):nm};
+const flatNames=names=>[...names].sort((a,b)=>surOf(a).localeCompare(surOf(b))||a.localeCompare(b));
 const CPM={};
 function convBlock(n){const c=n.conv;if(!c||!c.names||!c.names.length)return"";const all=c.names;
-  return `<details class="conv"${CPM[n.id]?" open":""}><summary><b>Convocazioni</b><span>${esc(c.rit?"ritrovo "+c.rit+" · ":"")}${all.length} convocati</span></summary>${groupNames(all).map(g=>`<div class="cv-g"><h5>${esc(g.label)}</h5><p>${g.list.map(x=>esc(dispName(x,all))).join(" · ")}</p></div>`).join("")}${c.note?`<p class="cv-note">${esc(c.note)}</p>`:""}<button type="button" class="btn btn-ghost btn-sm" data-next="convshare" data-id="${esc(n.id)}">Condividi la convocazione</button>${readOnly?"":`<button type="button" class="btn btn-primary btn-sm" data-next="convpush" data-id="${esc(n.id)}">🔔 Avvisa i genitori</button><span class="cv-push-msg${CPM[n.id]&&CPM[n.id].bad?" bad":""}" data-pushmsg="${esc(n.id)}">${esc(CPM[n.id]?CPM[n.id].t:"")}</span>`}</details>`}
+  return `<section class="conv conv-hi"><div class="cv-head"><b>📋 Convocati</b><span class="cv-n">${all.length}</span></div>${c.rit?`<div class="cv-rit"><small>Ritrovo</small><strong>${esc(c.rit)}</strong></div>`:""}<ul class="cv-list">${flatNames(all).map(x=>`<li>${esc(dispName(x,all))}</li>`).join("")}</ul>${c.note?`<p class="cv-note">${esc(c.note)}</p>`:""}<div class="cv-act"><button type="button" class="btn btn-ghost btn-sm" data-next="convshare" data-id="${esc(n.id)}">Condividi</button>${readOnly?"":`<button type="button" class="btn btn-primary btn-sm" data-next="convpush" data-id="${esc(n.id)}">🔔 Avvisa i genitori</button>`}</div>${readOnly?"":`<span class="cv-push-msg${CPM[n.id]&&CPM[n.id].bad?" bad":""}" data-pushmsg="${esc(n.id)}">${esc(CPM[n.id]?CPM[n.id].t:"")}</span>`}</section>`}
 function openConv(n){convFor=n.id;const c=n.conv||{};const has=!!(c.names&&c.names.length);const sel=new Set(has?c.names:S.players.map(p=>p.name));
   $("convMatch").textContent=`${n.opp} · ${n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})} · ore ${n.time||""}`;
   $("cRit").value=c.rit||hm(n.liveFrom);$("cNote").value=c.note||"";$("convErr").hidden=true;
-  const byRole=CONV_ROLES.map(([role,label])=>({label,ps:S.players.filter(p=>roleOf(p)===role).sort((a,b)=>a.name.localeCompare(b.name))})).filter(g=>g.ps.length);
-  $("cList").innerHTML=byRole.map(g=>`<div class="cv-grp"><span class="label">${esc(g.label)}</span><div class="pres-grid">${g.ps.map(p=>`<label class="pres-item"><input type="checkbox" value="${esc(p.name)}"${sel.has(p.name)?" checked":""}> ${esc(p.name)}</label>`).join("")}</div></div>`).join("")||`<p class="status">Nessun giocatore in rosa.</p>`;
+  const ps=[...S.players].sort((a,b)=>a.name.localeCompare(b.name));
+  $("cList").innerHTML=ps.length?`<div class="pres-grid">${ps.map(p=>`<label class="pres-item"><input type="checkbox" value="${esc(p.name)}"${sel.has(p.name)?" checked":""}> ${esc(p.name)}</label>`).join("")}</div>`:`<p class="status">Nessun giocatore in rosa.</p>`;
   convCount();$("convBg").hidden=false}
 let convFor=null;
 function convCount(){const k=document.querySelectorAll("#cList input:checked").length;$("cCount").textContent=k+" su "+S.players.length}
@@ -494,12 +496,12 @@ $("convSave").onclick=()=>convDone(false);
 $("convForm").addEventListener("submit",e=>{e.preventDefault();convDone(true)});
 function convText(n){const c=n.conv||{names:[]};const team=S.settings.team||"DF Academy";const home=n.where==="casa";
   const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
-  return [`CONVOCAZIONI ${team} – ${home?team+" vs "+n.opp:n.opp+" vs "+team}`,`${day} · ore ${n.time||""} · ${home?"in casa":"in trasferta"}`,c.rit?`Ritrovo: ${c.rit}`:"",n.addr?`Campo: ${n.addr}`:"","",`Convocati (${c.names.length}):`,...groupNames(c.names).map(g=>`${g.label}: ${g.list.map(x=>dispName(x,c.names)).join(", ")}`),c.note?"\n"+c.note:""].filter((x,i,a)=>x!==""||a[i-1]!=="").join("\n")}
+  return [`CONVOCAZIONI ${team} – ${home?team+" vs "+n.opp:n.opp+" vs "+team}`,`${day} · ore ${n.time||""} · ${home?"in casa":"in trasferta"}`,c.rit?`Ritrovo: ${c.rit}`:"",n.addr?`Campo: ${n.addr}`:"","",`Convocati (${c.names.length}):`,flatNames(c.names).map(x=>dispName(x,c.names)).join(", "),c.note?"\n"+c.note:""].filter((x,i,a)=>x!==""||a[i-1]!=="").join("\n")}
 async function convImage(n){const c=n.conv;try{await document.fonts.load('800 80px "Saira Condensed"')}catch(_){}
   const W=1080,F='"Saira Condensed","Arial Narrow",Impact,system-ui,sans-serif';const team=S.settings.team||"DF Academy";const home=n.where==="casa";
-  const groups=groupNames(c.names);const probe=document.createElement("canvas").getContext("2d");probe.font=`700 46px ${F}`;
+  const list=flatNames(c.names);const probe=document.createElement("canvas").getContext("2d");probe.font=`700 46px ${F}`;
   const noteLines=c.note?wrapLines(probe,c.note,W-160):[];
-  let y=820;groups.forEach(g=>{y+=70+Math.ceil(g.list.length/2)*62});
+  let y=820+Math.ceil(list.length/2)*62+40;
   const H=Math.max(1350,y+(noteLines.length?noteLines.length*50+50:0)+130);
   const cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");
   const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,"#2a4aa8");gr.addColorStop(1,"#0f1b45");g.fillStyle=gr;g.fillRect(0,0,W,H);
@@ -515,9 +517,9 @@ async function convImage(n){const c=n.conv;try{await document.fonts.load('800 80
   if(n.addr&&!/^https?:/i.test(n.addr)){g.font=`600 38px ${F}`;g.fillText("📍 "+n.addr,80,556)}
   if(c.rit){g.fillStyle="#f5e300";rr(g,80,600,920,150,28);g.fill();g.fillStyle="#141a2e";g.font=`900 120px ${F}`;g.fillText(c.rit,110,716);g.font=`800 40px ${F}`;g.fillText("RITROVO",440,684);g.font=`600 36px ${F}`;g.fillText("al campo",440,728)}
   y=820;g.textAlign="left";
-  groups.forEach(gr2=>{g.fillStyle="#f5e300";g.font=`800 34px ${F}`;g.fillText(gr2.label.toUpperCase().split("").join(" "),80,y);y+=22;
-    g.fillStyle="#fff";g.font=`700 46px ${F}`;gr2.list.forEach((nm,i)=>{const col=i%2,row=Math.floor(i/2);g.fillStyle="#f5e300";g.fillText("•",80+col*470,y+48+row*62);g.fillStyle="#fff";g.fillText(dispName(nm,c.names),112+col*470,y+48+row*62)});
-    y+=48+Math.ceil(gr2.list.length/2)*62});
+  g.fillStyle="#f5e300";g.font=`800 34px ${F}`;g.fillText("C O N V O C A T I",80,y);y+=22;
+  list.forEach((nm,i)=>{const col=i%2,row=Math.floor(i/2);g.fillStyle="#f5e300";g.fillText("•",80+col*470,y+48+row*62);g.fillStyle="#fff";g.font=`700 46px ${F}`;g.fillText(dispName(nm,c.names),112+col*470,y+48+row*62);g.font=`800 34px ${F}`});
+  y+=48+Math.ceil(list.length/2)*62;
   if(noteLines.length){g.fillStyle="rgba(255,255,255,.25)";g.fillRect(80,y,920,2);g.fillStyle="#e1e6ff";g.font=`600 40px ${F}`;noteLines.forEach((t,i)=>g.fillText(t,80,y+60+i*50))}
   g.fillStyle="rgba(255,255,255,.7)";g.font=`600 30px ${F}`;g.fillText((S.settings.coach?team+" · mister "+(S.settings.coachAlias||S.settings.coach):team).toUpperCase(),80,H-48);g.textAlign="right";g.fillText(c.names.length+" CONVOCATI",W-80,H-48);
   return new Promise(res=>cv.toBlob(res,"image/png"))}

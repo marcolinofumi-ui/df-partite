@@ -423,6 +423,13 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .cv-g h5{margin:10px 0 2px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.cv-g p{margin:0;font-weight:600;line-height:1.4}
 .cv-note{margin:8px 0 6px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted)}
 .conv .btn{margin-top:8px}
+.conv-hi{border:2px solid var(--accent);background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 14%,var(--surface-2)),var(--surface-2));padding:12px 14px;margin:10px 0 4px;box-shadow:0 4px 16px color-mix(in srgb,var(--accent) 22%,transparent)}
+.cv-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+.cv-n{background:var(--accent);color:var(--accent-fg);border-radius:999px;min-width:30px;height:30px;display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:0}
+.cv-rit{display:flex;align-items:baseline;gap:10px;margin:10px 0 4px}.cv-rit small{text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-size:12px}.cv-rit strong{font-size:34px;line-height:1;color:var(--accent)}
+.cv-list{list-style:none;margin:10px 0 2px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+.cv-list li{font-weight:700;font-size:16px;padding-left:16px;position:relative}.cv-list li:before{content:"";position:absolute;left:0;top:.5em;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.cv-act{display:flex;gap:8px;flex-wrap:wrap}
 
 /* password visibile + utenti */
 .pw{position:relative;display:block}.pw input{padding-right:46px}
