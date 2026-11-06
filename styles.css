@@ -448,4 +448,13 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .vplay{flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px;font:inherit;color:inherit;cursor:pointer}
 .vico{flex:none;width:34px;height:34px;border-radius:50%;background:var(--club);color:#fff;display:grid;place-items:center;font-size:13px;padding-left:2px}
 .vtxt{display:flex;flex-direction:column;min-width:0}.vtxt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vtxt small{color:var(--muted)}
-#vidBg .sheet{max-width:640px}
+
+/* lettore video a tutto schermo */
+#vidBg{background:#000;align-items:stretch}
+#vidBg .sheet{max-width:none;width:100%;height:100vh;height:100dvh;max-height:none;border-radius:0;background:#000;color:#fff;display:flex;flex-direction:column;gap:0;padding:max(8px,env(safe-area-inset-top)) 0 max(8px,env(safe-area-inset-bottom));overflow:hidden}
+#vidBg h3{font-size:16px;padding:6px 14px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vidBg #vidFrame{flex:1;min-height:0}
+#vidBg .yt{aspect-ratio:auto;width:100%;height:100%;border-radius:0;margin:0}
+#vidBg .sheet-actions{padding:8px 14px 0;justify-content:space-between}
+#vidBg .btn{text-decoration:none}
+#vidBg .btn-ghost{color:#fff;border-color:rgba(255,255,255,.4)}
