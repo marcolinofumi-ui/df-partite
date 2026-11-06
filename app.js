@@ -379,16 +379,17 @@ function pushRow(){const r=$("pushRow");if(!r)return;if(!PUSH_ID||!SESSION||read
   const ios=/iP(hone|ad|od)/.test(navigator.userAgent),standalone=navigator.standalone||matchMedia("(display-mode: standalone)").matches;
   r.hidden=false;
   if(!("Notification" in window)){r.innerHTML=`<span>🔔 Avvisi sul telefono</span><small>${ios&&!standalone?"Aggiungi l'app alla schermata Home (Condividi → Aggiungi a Home) per attivarli.":"Questo browser non li supporta."}</small>`;return}
+  if(window.__osErr){r.innerHTML=`<span>🔔 Avvisi sul telefono</span><small>Non disponibili: ${esc(window.__osErr)}</small>`;return}
   const on=window.__pushOn;
   r.innerHTML=`<span>🔔 Avvisi su diretta, gol e convocazioni</span>${on?'<small>Attivi ✓</small>':'<button type="button" class="btn btn-primary btn-sm" id="pushBtn">Attiva</button>'}`;
-  const b=$("pushBtn");if(b)b.onclick=async()=>{b.disabled=true;try{await window.__OS.Notifications.requestPermission();try{await window.__OS.login(SESSION.user)}catch(_){}}catch(_){}b.disabled=false;pushState()}}
+  const b=$("pushBtn");if(b)b.onclick=async()=>{if(!window.__OS){r.innerHTML=`<span>🔔 Avvisi sul telefono</span><small>Si sta ancora caricando: riprova tra qualche secondo.</small>`;return}b.disabled=true;try{await window.__OS.Notifications.requestPermission();try{await window.__OS.login(SESSION.user)}catch(_){}}catch(_){}b.disabled=false;pushState()}}
 function pushState(){try{window.__pushOn=!!(window.__OS&&window.__OS.User.PushSubscription.optedIn)}catch(_){window.__pushOn=false}pushRow()}
 function initPush(){if(!PUSH_ID||window.__osInit||!SESSION||readOnly)return;window.__osInit=true;
   window.OneSignalDeferred=window.OneSignalDeferred||[];
   window.OneSignalDeferred.push(async OS=>{try{const base=new URL("./",location.href).pathname;
     await OS.init({appId:PUSH_ID,serviceWorkerPath:"sw.js",serviceWorkerParam:{scope:base},notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true});
     window.__OS=OS;try{OS.User.PushSubscription.addEventListener("change",pushState)}catch(_){}
-    if(SESSION)try{await OS.login(SESSION.user)}catch(_){}pushState()}catch(_){}});
+    if(SESSION)try{await OS.login(SESSION.user)}catch(_){}pushState()}catch(e){window.__osErr=String(e&&e.message||e);pushRow()}});
   const sc=document.createElement("script");sc.src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";sc.defer=true;sc.onerror=()=>{};document.head.appendChild(sc)}
 
 /* ---------- diretta ---------- */
