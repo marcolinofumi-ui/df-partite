@@ -52,7 +52,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .btn-sm{padding:6px 12px;font-size:14px}
 
 /* tabellone */
-.board{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 12px}
+.board{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 12px}
 .board .cell{display:flex;flex-direction:column;gap:2px}
 .board .big{font-family:var(--display);font-weight:800;font-size:38px;line-height:1}
 .form-strip{grid-column:1/-1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px}

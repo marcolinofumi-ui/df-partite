@@ -69,15 +69,13 @@
     <div class="cell"><span class="label">Gol fatti</span><span class="big num" id="sGF">0</span></div>
     <div class="cell"><span class="label">Gol subiti</span><span class="big num" id="sGA">0</span></div>
     <div class="cell"><span class="label">Serie vittorie</span><span class="big num" id="sStreak">0</span></div>
-    <div class="cell"><span class="label">Media gol</span><span class="big num" id="sAvg">0</span></div>
+    <div class="cell"><span class="label">Media gol fatti</span><span class="big num" id="sAvg">0</span></div>
+    <div class="cell"><span class="label">Media gol subiti</span><span class="big num" id="sAvgGA">0</span></div>
+    <div class="cell"><span class="label">Porte inviolate</span><span class="big num" id="sClean">0</span></div>
     <div class="form-strip"><span class="label">Ultime 5</span><span id="formDots" style="display:flex;gap:6px"></span><span class="status" id="formEmpty">nessuna partita ancora</span></div>
   </section>
 
   <section class="charts" data-pane="home" aria-label="Grafici della stagione">
-    <figure class="chart-card">
-      <figcaption><span class="chart-title">Gol per partita</span><span class="legend"><i class="sw sw-gf"></i>Fatti <i class="sw sw-ga"></i>Subiti</span></figcaption>
-      <div class="chart-scroll"><svg id="chartGoals" role="img" aria-label="Gol fatti e subiti per partita"></svg></div>
-    </figure>
     <figure class="chart-card">
       <figcaption><span class="chart-title">Presenze in campo</span><span class="status" id="presTotal"></span></figcaption>
       <div id="chartPres" class="hbars"></div>
@@ -85,6 +83,10 @@
     <figure class="chart-card wide">
       <figcaption><span class="chart-title">Casa e trasferta</span></figcaption>
       <div id="homeAway" class="ha"></div>
+    </figure>
+    <figure class="chart-card wide">
+      <figcaption><span class="chart-title">Gol per partita</span><span class="legend"><i class="sw sw-gf"></i>Fatti <i class="sw sw-ga"></i>Subiti</span></figcaption>
+      <div class="chart-scroll"><svg id="chartGoals" role="img" aria-label="Gol fatti e subiti per partita"></svg></div>
     </figure>
   </section>
 

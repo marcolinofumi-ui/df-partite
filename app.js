@@ -75,6 +75,7 @@ function render(){
   let streak=0;for(let i=chronAll.length-1;i>=0&&result(chronAll[i])==="V";i--)streak++;
   const avg=list.length?(gf/list.length):0;
   $("sStreak").textContent=streak;$("sAvg").textContent=avg.toLocaleString("it-IT",{maximumFractionDigits:1});
+  $("sAvgGA").textContent=(list.length?ga/list.length:0).toLocaleString("it-IT",{maximumFractionDigits:1});$("sClean").textContent=list.filter(m=>(m.ga||0)===0).length;
   // diretta
   renderLive();
   $("compList").innerHTML=[...new Set(["Campionato",...S.matches.map(m=>m.comp).filter(Boolean)])].map(c=>`<option value="${esc(c)}">`).join("");
