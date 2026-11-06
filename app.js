@@ -79,7 +79,7 @@ function render(){
   $("sStreak").textContent=streak;$("sAvg").textContent=avg.toLocaleString("it-IT",{maximumFractionDigits:1});
   $("sAvgGA").textContent=(list.length?ga/list.length:0).toLocaleString("it-IT",{maximumFractionDigits:1});$("sClean").textContent=list.filter(m=>(m.ga||0)===0).length;
   // diretta
-  renderLive();renderTrain();
+  renderLive();renderTrain();renderVideos();
   $("compList").innerHTML=[...new Set(["Campionato",...S.matches.map(m=>m.comp).filter(Boolean)])].map(c=>`<option value="${esc(c)}">`).join("");
   // momento della stagione
   const best=[...list].sort((a,b)=>(b.gf-b.ga)-(a.gf-a.ga))[0];
@@ -164,7 +164,7 @@ function render(){
     const teams=home?`<span class="us">${team}</span> – ${esc(m.opp)}`:`${esc(m.opp)} – <span class="us">${team}</span>`;
     const score=home?`${m.gf}–${m.ga}`:`${m.ga}–${m.gf}`;
     const goals=(m.scorers||[]).filter(s=>s.name).map(s=>`<span class="g ${isKid(s.name)?"me":""}">${BALL}${esc(s.name)}${s.goals>1?` ×${s.goals}`:""}</span>`).join("");
-    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(m.x&&ytId(m.x.yt)?`<a class="btn btn-ghost btn-sm" href="https://www.youtube.com/watch?v=${ytId(m.x.yt)}" target="_blank" rel="noopener">Rivedi la partita</a>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
+    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(getVideos().some(v=>v.date&&v.date===m.date)?`<button type="button" class="btn btn-ghost btn-sm" data-mvid="${m.date}">Spezzoni</button>`:"")+(m.x&&ytId(m.x.yt)?`<a class="btn btn-ghost btn-sm" href="https://www.youtube.com/watch?v=${ytId(m.x.yt)}" target="_blank" rel="noopener">Rivedi la partita</a>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
     const act=share+(readOnly||confirmId===m.id?"":`<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="${m.id}">${I.edit}Modifica</button>`);
     const delRow=readOnly?"":(confirmId===m.id
       ?`<div class="del-row"><span class="confirm">Eliminare questa partita?</span><button type="button" class="btn btn-ghost btn-sm" data-act="nodel">No</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-id="${m.id}">Elimina</button></div>`
@@ -344,6 +344,33 @@ async function ytSave(url,remove){const tr=ytMode==="train";const raw=(url||"").
 $("ytForm").addEventListener("submit",e=>{e.preventDefault();ytSave($("ytUrl").value,false)});
 $("ytRemove").onclick=()=>ytSave("",true);
 
+
+/* ---------- spezzoni delle partite (video su Google Drive) ---------- */
+const DEFAULT_VIDEOS=[["1hJZCkDzTASFpYCQpI9JYwyd9GP16yHl9","20-09-2026 df-asroma"],["18ZJz--KGxMc_NSN3XVWhU5tZnjVGGC7l","27:09:2026 grifone-df 2-13"],["1aAwfF12ISjwCpwF2CAsuOdm1SmmKPFEH","03:10:2026 df-fontemeravigliosa 2-2"],["1Djo1Zg4xNMxuof8CM5Z5ueyQgMjuw9Xz","03:10:2026 df-fontemeravigliosa 8-2"],["1mcAfZAVqNhN7CeBf5oN2UoVpTDUX3iqv","10:10:2026 San Cesareo-DF"],["1ZQagOu_hAl4WJKU1zvuDYUfZ5oZckt5m","18:10:2026 triangolare Marino"],["1-UiuUmYZXuFmRf214mNFvYUtGwM8w5Rx","24:10:2026 castle cup"],["1bMGhnnNIp0dmkygtEWDKoFn-nAeBz1qZ","torneo smile cup"],["11zKIuEGVnMgbWImGogZ7H_CBR5VlPuNH","velletri-df 2-30"]].map(([id,name])=>({id,name}));
+const vidDate=t=>{const m=String(t).match(/(\d{2})[:\-.](\d{2})[:\-.](20\d\d)/);return m?`${m[3]}-${m[2]}-${m[1]}`:""};
+const vidTitle=t=>String(t).replace(/\.(mp4|mov|m4v)$/i,"").replace(/^2018\s+/,"").replace(/\d{2}[:\-.]\d{2}[:\-.]20\d\d\s*/,"").trim()||String(t);
+function getVideos(){let l=null;try{l=JSON.parse(S.settings.videos||"null")}catch(_){}if(!Array.isArray(l))l=DEFAULT_VIDEOS;
+  return l.filter(v=>v&&/^[\w-]{20,}$/.test(v.id)).map(v=>({id:v.id,name:v.name||"Video",date:v.date||vidDate(v.name)})).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||a.name.localeCompare(b.name))}
+function driveId(u){u=String(u||"").trim();if(/^[\w-]{20,}$/.test(u))return u;const m=u.match(/\/d\/([\w-]{20,})/)||u.match(/[?&]id=([\w-]{20,})/);return m?m[1]:""}
+function renderVideos(){const sec=$("videoSec");const l=getVideos();sec.hidden=!l.length&&readOnly;
+  $("vidAdd").hidden=readOnly;
+  $("vidList").innerHTML=l.length?l.map(v=>`<div class="vrow"><button type="button" class="vplay" data-vid="${esc(v.id)}"><span class="vico">▶</span><span class="vtxt"><b>${esc(vidTitle(v.name))}</b>${v.date?`<small>${esc(fmtDate(v.date))}</small>`:""}</span></button>${readOnly?"":`<button type="button" class="icon-btn" data-vdel="${esc(v.id)}" aria-label="Rimuovi video">✕</button>`}</div>`).join(""):'<p class="status">Nessuno spezzone.</p>'}
+function openVideo(id){const v=getVideos().find(x=>x.id===id);if(!v)return;$("vidT").textContent=vidTitle(v.name);
+  $("vidFrame").innerHTML=`<div class="yt"><iframe src="https://drive.google.com/file/d/${id}/preview" title="${esc(vidTitle(v.name))}" allow="autoplay; fullscreen" allowfullscreen></iframe></div>`;
+  $("vidOpen").href=`https://drive.google.com/file/d/${id}/view`;$("vidBg").hidden=false}
+$("vidClose").onclick=()=>{$("vidBg").hidden=true;$("vidFrame").innerHTML=""};
+$("vidBg").addEventListener("click",e=>{if(e.target===$("vidBg")){$("vidBg").hidden=true;$("vidFrame").innerHTML=""}});
+$("vidList").addEventListener("click",async e=>{const p=e.target.closest("[data-vid]");if(p){openVideo(p.dataset.vid);return}
+  const d=e.target.closest("[data-vdel]");if(d){const id=d.dataset.vdel;await commit(st=>{let l=[];try{l=JSON.parse(st.settings.videos||"null")}catch(_){}if(!Array.isArray(l))l=DEFAULT_VIDEOS;st.settings.videos=JSON.stringify(l.filter(v=>v.id!==id))});render()}});
+$("vidAdd").onclick=()=>{$("vaLink").value="";$("vaName").value="";$("vaErr").hidden=true;$("vidAddBg").hidden=false;setTimeout(()=>$("vaLink").focus(),50)};
+$("vaCancel").onclick=()=>$("vidAddBg").hidden=true;
+$("vidAddBg").addEventListener("click",e=>{if(e.target===$("vidAddBg"))$("vidAddBg").hidden=true});
+$("vidAddForm").addEventListener("submit",async e=>{e.preventDefault();const id=driveId($("vaLink").value),name=$("vaName").value.trim();
+  if(!id){$("vaErr").textContent="Incolla il link del video di Google Drive.";$("vaErr").hidden=false;return}
+  if(!name){$("vaErr").textContent="Scrivi un titolo, meglio se con la data (es. 14-11-2026 DF-Velletri).";$("vaErr").hidden=false;return}
+  const ok=await commit(st=>{let l=[];try{l=JSON.parse(st.settings.videos||"null")}catch(_){}if(!Array.isArray(l))l=DEFAULT_VIDEOS;l=l.filter(v=>v.id!==id);l.push({id,name,date:vidDate(name)});st.settings.videos=JSON.stringify(l)});
+  if(ok){$("vidAddBg").hidden=true;render()}else{$("vaErr").textContent="Non riesco a salvare.";$("vaErr").hidden=false}});
+
 /* ---------- diretta ---------- */
 const nowHM=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 const shortName=n=>{const p=n.split(" ");return p.length>1?p.slice(1).join(" "):n};
@@ -506,6 +533,7 @@ function posterAdmin(n){if(readOnly)return"";const has=n.poster&&n.poster.i;
 function openPoster(p){if(!p||!p.i)return;picCur=null;picConfirm=false;$("picDel").hidden=true;$("picImg").src=PIC[p.i]||PIC[p.t]||"";$("picBg").hidden=false;
   getPic(p.i).then(u=>{if(u&&!$("picBg").hidden&&$("picDel").hidden)$("picImg").src=u})}
 document.addEventListener("click",e=>{const o=e.target.closest("[data-poster-open]");if(o){const n=getNexts().find(x=>x.id===o.dataset.posterOpen);if(n)openPoster(n.poster);return}
+  const mv=e.target.closest("[data-mvid]");if(mv){const v=getVideos().filter(x=>x.date===mv.dataset.mvid);if(v.length){const sec=$("videoSec");sec.scrollIntoView({behavior:"smooth",block:"start"});if(v.length===1)openVideo(v[0].id)}return}
   const m=e.target.closest("[data-poster-match]");if(m){const x=S.matches.find(y=>y.id===m.dataset.posterMatch);if(x&&x.x)openPoster(x.x.poster);return}
   const d=e.target.closest("[data-pdel]");if(d){const id=d.dataset.pdel;const old=(readNexts().find(x=>x.id===id)||{}).poster;
     commit(st=>{let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const it=l.find(x=>x.id===id);if(it)it.poster=null;st.settings.nextList=JSON.stringify(l)}).then(ok=>{if(ok&&old)api("photoDelete",{token:SESSION.token,ids:[old.i,old.t]}).catch(()=>{})})}});
