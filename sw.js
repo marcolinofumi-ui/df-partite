@@ -2,7 +2,7 @@
 // I dati arrivano sempre da Google (mai messi in cache qui): l'app conserva l'ultima copia in locale.
 // Notifiche push (OneSignal): se il caricamento fallisce, l'app funziona comunque
 try { importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"); } catch (e) { /* offline o non configurato */ }
-const CACHE = "df-partite-v30";
+const CACHE = "df-partite-v31";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "config.js", "manifest.webmanifest",
   "icons/crest-240.png", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });

@@ -375,7 +375,7 @@ $("vidAddForm").addEventListener("submit",async e=>{e.preventDefault();const id=
 
 /* ---------- avvisi push (OneSignal), facoltativi ---------- */
 const PUSH_ID=(window.DF_CONFIG&&DF_CONFIG.PUSH_APP_ID)||"";
-function pushRow(){const r=$("pushRow");if(!r)return;if(!PUSH_ID||!SESSION){r.hidden=true;return}
+function pushRow(){const r=$("pushRow");if(!r)return;if(!PUSH_ID||!SESSION||readOnly){r.hidden=true;return}
   const ios=/iP(hone|ad|od)/.test(navigator.userAgent),standalone=navigator.standalone||matchMedia("(display-mode: standalone)").matches;
   r.hidden=false;
   if(!("Notification" in window)){r.innerHTML=`<span>🔔 Avvisi sul telefono</span><small>${ios&&!standalone?"Aggiungi l'app alla schermata Home (Condividi → Aggiungi a Home) per attivarli.":"Questo browser non li supporta."}</small>`;return}
@@ -383,7 +383,7 @@ function pushRow(){const r=$("pushRow");if(!r)return;if(!PUSH_ID||!SESSION){r.hi
   r.innerHTML=`<span>🔔 Avvisi su diretta, gol e convocazioni</span>${on?'<small>Attivi ✓</small>':'<button type="button" class="btn btn-primary btn-sm" id="pushBtn">Attiva</button>'}`;
   const b=$("pushBtn");if(b)b.onclick=async()=>{b.disabled=true;try{await window.__OS.Notifications.requestPermission();try{await window.__OS.login(SESSION.user)}catch(_){}}catch(_){}b.disabled=false;pushState()}}
 function pushState(){try{window.__pushOn=!!(window.__OS&&window.__OS.User.PushSubscription.optedIn)}catch(_){window.__pushOn=false}pushRow()}
-function initPush(){if(!PUSH_ID||window.__osInit)return;window.__osInit=true;
+function initPush(){if(!PUSH_ID||window.__osInit||!SESSION||readOnly)return;window.__osInit=true;
   window.OneSignalDeferred=window.OneSignalDeferred||[];
   window.OneSignalDeferred.push(async OS=>{try{const base=new URL("./",location.href).pathname;
     await OS.init({appId:PUSH_ID,serviceWorkerPath:"sw.js",serviceWorkerParam:{scope:base},notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true});
