@@ -375,22 +375,30 @@ $("vidAddForm").addEventListener("submit",async e=>{e.preventDefault();const id=
 
 /* ---------- avvisi push (OneSignal), facoltativi ---------- */
 const PUSH_ID=(window.DF_CONFIG&&DF_CONFIG.PUSH_APP_ID)||"";
-function pushRow(){const r=$("pushRow");if(!r)return;if(!PUSH_ID||!SESSION||readOnly){r.hidden=true;return}
+function pushRow(){const r=$("pushRow");if(!r)return;if(!PUSH_ID||!SESSION){r.hidden=true;return}
   const ios=/iP(hone|ad|od)/.test(navigator.userAgent),standalone=navigator.standalone||matchMedia("(display-mode: standalone)").matches;
   r.hidden=false;const on=!!window.__pushOn;
   const note=!("Notification" in window)?(ios&&!standalone?"Aggiungi l'app alla schermata Home (Condividi → Aggiungi a Home) per attivarli.":"Questo browser non li supporta."):(window.__osErr?"Errore: "+esc(window.__osErr):(on?"Attivi ✓":(window.__osBusy?"Attivazione…":"")));
   r.innerHTML=`<span>🔔 Avvisi su diretta, gol e convocazioni</span><button type="button" class="btn btn-primary btn-sm" id="pushBtn">${on?"Riattiva":"Attiva"}</button>${note?`<small class="push-note">${note}</small>`:""}`;
-  $("pushBtn").onclick=async()=>{window.__osErr="";window.__osBusy=true;pushRow();
+  $("pushBtn").onclick=pushActivate}
+async function pushActivate(){{window.__osErr="";window.__osBusy=true;pushRow();
     try{if(!window.__OS){window.__osInit=false;initPush();for(let k=0;k<40&&!window.__OS&&!window.__osErr;k++)await new Promise(r=>setTimeout(r,250))}
       if(window.__OS){await window.__OS.Notifications.requestPermission();try{await window.__OS.login(SESSION.user)}catch(_){}}
       else if(!window.__osErr)window.__osErr="OneSignal non risponde, riprova"}catch(e){window.__osErr=String(e&&e.message||e)}
     window.__osBusy=false;pushState()}}
-function pushState(){try{window.__pushOn=!!(window.__OS&&window.__OS.User.PushSubscription.optedIn)}catch(_){window.__pushOn=false}pushRow()}
-function initPush(){if(!PUSH_ID||window.__osInit||!SESSION||readOnly)return;window.__osInit=true;
+function pushState(){try{window.__pushOn=!!(window.__OS&&window.__OS.User.PushSubscription.optedIn)}catch(_){window.__pushOn=false}pushRow();maybeAskPush()}
+function maybeAskPush(){const L=S.live,bg=$("pushAskBg");if(!bg)return;
+  const ok=L&&PUSH_ID&&SESSION&&window.__pushReady&&!window.__pushOn&&("Notification" in window)&&Notification.permission!=="denied";
+  const key=L?(L.date||"")+"|"+(L.opp||""):"";
+  if(!ok||LS.get("pushAsk")===key){if(!ok)bg.hidden=true;return}
+  if(!bg.hidden)return;$("pushAskTxt").textContent=`È in corso la diretta contro ${L.opp}. Tocca Attiva per ricevere i gol e gli aggiornamenti anche quando l'app è chiusa.`;bg.hidden=false}
+$("pushAskNo").onclick=()=>{const L=S.live;LS.set("pushAsk",L?(L.date||"")+"|"+(L.opp||""):"x");$("pushAskBg").hidden=true};
+$("pushAskYes").onclick=()=>{const L=S.live;LS.set("pushAsk",L?(L.date||"")+"|"+(L.opp||""):"x");$("pushAskBg").hidden=true;pushActivate()};
+function initPush(){if(!PUSH_ID||window.__osInit||!SESSION)return;window.__osInit=true;
   window.OneSignalDeferred=window.OneSignalDeferred||[];
   window.OneSignalDeferred.push(async OS=>{try{const base=new URL("./",location.href).pathname;
     await OS.init({appId:PUSH_ID,serviceWorkerPath:base.replace(/^\//,"")+"sw.js",serviceWorkerParam:{scope:base},serviceWorkerOverrideForTypical:true,notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true,promptOptions:{autoPrompt:false,slidedown:{prompts:[]}}});
-    window.__OS=OS;try{OS.User.PushSubscription.addEventListener("change",pushState)}catch(_){}
+    window.__OS=OS;window.__pushReady=true;try{OS.User.PushSubscription.addEventListener("change",pushState)}catch(_){}
     if(SESSION)try{await OS.login(SESSION.user)}catch(_){}pushState()}catch(e){window.__osErr=String(e&&e.message||e);window.__osInit=false;pushRow()}});
   if(!document.querySelector("script[data-os]")){const sc=document.createElement("script");sc.src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";sc.defer=true;sc.dataset.os="1";sc.onerror=()=>{window.__osErr="impossibile caricare OneSignal (rete?)";window.__osInit=false;pushRow()};document.head.appendChild(sc)}}
 
@@ -407,7 +415,7 @@ let lastSc=null;
 function confetti(){try{if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;const h=document.createElement("div");h.className="confetti";const cols=["#f8ec1c","#6fd294","#f08a7d","#7fa6ff","#ffffff"];
   h.innerHTML=Array.from({length:42},(_,i)=>`<i style="left:${Math.random()*100}%;background:${cols[i%5]};animation-delay:${(Math.random()*.5).toFixed(2)}s;animation-duration:${(1.8+Math.random()*1.2).toFixed(2)}s;--dx:${Math.round(Math.random()*120-60)}px;--rot:${Math.round(Math.random()*720)}deg"></i>`).join("");
   document.body.appendChild(h);setTimeout(()=>h.remove(),3400)}catch(_){}}
-function renderLive(){renderNext();updateAlertBar();$("tabLiveDot").hidden=!S.live;setVideo($("liveVideo"),S.live&&S.live.yt);
+function renderLive(){renderNext();updateAlertBar();maybeAskPush();$("tabLiveDot").hidden=!S.live;setVideo($("liveVideo"),S.live&&S.live.yt);
   const L=S.live,box=$("liveBox"),sec=$("liveSec");const team=S.settings.team||"DF Academy";
   if(!L){lastSc=null;sec.hidden=readOnly;box.innerHTML=readOnly?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button>${getTrain()?"":`<button type="button" class="btn btn-ghost btn-sm" data-live="train">● Allenamento in diretta</button>`}</div>`;return}
   sec.hidden=false;const home=L.where!=="trasferta";
@@ -798,7 +806,7 @@ function notifyLive(prev,now){
   showToast(`${head} ${score}${ours&&last.scorer?" · "+last.scorer:""}`,!ours);if(ours){cheer();confetti()}
   try{if(navigator.vibrate)navigator.vibrate(ours?[250,100,250,100,400]:[300])}catch(_){}
   systemNotify(head,`${score}${ours&&last.scorer?" · segna "+last.scorer:""}`)}
-function updateAlertBar(){const b=$("alertBar");if(!b)return;b.hidden=!(S.live&&"Notification" in window&&Notification.permission==="default")}
+function updateAlertBar(){const b=$("alertBar");if(!b)return;b.hidden=!(S.live&&!PUSH_ID&&"Notification" in window&&Notification.permission==="default")}
 /* Il permesso lo decide sempre il telefono: lo chiedo da solo al primo tocco (accesso o primo tap), senza che serva cercare il pulsante */
 function askNotifyOnce(){try{if("Notification" in window&&Notification.permission==="default"&&!LS.get("askedNotify")){LS.set("askedNotify",1);Notification.requestPermission().then(updateAlertBar).catch(()=>{})}}catch(_){}}
 document.addEventListener("click",askNotifyOnce,{once:true,capture:true});
