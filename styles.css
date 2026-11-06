@@ -458,3 +458,7 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 #vidBg .sheet-actions{padding:8px 14px 0;justify-content:space-between}
 #vidBg .btn{text-decoration:none}
 #vidBg .btn-ghost{color:#fff;border-color:rgba(255,255,255,.4)}
+
+/* avvisi push */
+.push-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.push-row small{color:var(--muted)}

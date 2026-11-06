@@ -190,7 +190,7 @@ function xInfo(m){const x=m.x||{};const sh=n=>esc(n.split(" ").slice(-1)[0]);con
   if((x.yc||[]).length)o.push(`<div class="xline"><b>🟨 Ammoniti:</b> ${x.yc.map(sh).join(", ")}</div>`);
   if(x.mvp)o.push(`<div class="xline"><b>⭐ Migliore in campo:</b> ${esc(x.mvp)}</div>`);
   return o.join("")}
-function afterRender(){loadPics();renderSoundBtn()}
+function afterRender(){loadPics();renderSoundBtn();initPush();pushRow()}
 /* ---------- form partita ---------- */
 let rowSeq=0;
 function scorerRow(name="",goals=1){
@@ -372,6 +372,25 @@ $("vidAddForm").addEventListener("submit",async e=>{e.preventDefault();const id=
   const ok=await commit(st=>{let l=[];try{l=JSON.parse(st.settings.videos||"null")}catch(_){}if(!Array.isArray(l))l=DEFAULT_VIDEOS;l=l.filter(v=>v.id!==id);l.push({id,name,date:vidDate(name)});st.settings.videos=JSON.stringify(l)});
   if(ok){$("vidAddBg").hidden=true;render()}else{$("vaErr").textContent="Non riesco a salvare.";$("vaErr").hidden=false}});
 
+
+/* ---------- avvisi push (OneSignal), facoltativi ---------- */
+const PUSH_ID=(window.DF_CONFIG&&DF_CONFIG.PUSH_APP_ID)||"";
+function pushRow(){const r=$("pushRow");if(!r)return;if(!PUSH_ID||!SESSION){r.hidden=true;return}
+  const ios=/iP(hone|ad|od)/.test(navigator.userAgent),standalone=navigator.standalone||matchMedia("(display-mode: standalone)").matches;
+  r.hidden=false;
+  if(!("Notification" in window)){r.innerHTML=`<span>🔔 Avvisi sul telefono</span><small>${ios&&!standalone?"Aggiungi l'app alla schermata Home (Condividi → Aggiungi a Home) per attivarli.":"Questo browser non li supporta."}</small>`;return}
+  const on=window.__pushOn;
+  r.innerHTML=`<span>🔔 Avvisi su diretta, gol e convocazioni</span>${on?'<small>Attivi ✓</small>':'<button type="button" class="btn btn-primary btn-sm" id="pushBtn">Attiva</button>'}`;
+  const b=$("pushBtn");if(b)b.onclick=async()=>{b.disabled=true;try{await window.__OS.Notifications.requestPermission();try{await window.__OS.login(SESSION.user)}catch(_){}}catch(_){}b.disabled=false;pushState()}}
+function pushState(){try{window.__pushOn=!!(window.__OS&&window.__OS.User.PushSubscription.optedIn)}catch(_){window.__pushOn=false}pushRow()}
+function initPush(){if(!PUSH_ID||window.__osInit)return;window.__osInit=true;
+  window.OneSignalDeferred=window.OneSignalDeferred||[];
+  window.OneSignalDeferred.push(async OS=>{try{const base=new URL("./",location.href).pathname;
+    await OS.init({appId:PUSH_ID,serviceWorkerPath:"sw.js",serviceWorkerParam:{scope:base},notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true});
+    window.__OS=OS;try{OS.User.PushSubscription.addEventListener("change",pushState)}catch(_){}
+    if(SESSION)try{await OS.login(SESSION.user)}catch(_){}pushState()}catch(_){}});
+  const sc=document.createElement("script");sc.src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";sc.defer=true;sc.onerror=()=>{};document.head.appendChild(sc)}
+
 /* ---------- diretta ---------- */
 const nowHM=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 const shortName=n=>{const p=n.split(" ");return p.length>1?p.slice(1).join(" "):n};
@@ -458,7 +477,7 @@ $("convCancel").onclick=()=>$("convBg").hidden=true;
 $("convBg").addEventListener("click",e=>{if(e.target===$("convBg"))$("convBg").hidden=true});
 async function convDone(share){const conv=readConv();if(!conv.names.length){$("convErr").textContent="Seleziona almeno un convocato.";$("convErr").hidden=false;return}
   if(!await saveConv(conv)){$("convErr").textContent="Non riesco a salvare la convocazione.";$("convErr").hidden=false;return}
-  $("convBg").hidden=true;if(share){const n=getNexts().find(x=>x.id===convFor);if(n)shareConv(n)}}
+  $("convBg").hidden=true;if(share){const n=getNexts().find(x=>x.id===convFor);if(n){shareConv(n);api("notify",{token:SESSION.token,title:"📋 Convocazioni: "+n.opp,body:(n.conv&&n.conv.rit?"Ritrovo "+n.conv.rit+" · ":"")+(n.conv?n.conv.names.length:0)+" convocati"}).catch(()=>{})}}}
 $("convSave").onclick=()=>convDone(false);
 $("convForm").addEventListener("submit",e=>{e.preventDefault();convDone(true)});
 function convText(n){const c=n.conv||{names:[]};const team=S.settings.team||"DF Academy";const home=n.where==="casa";
@@ -766,7 +785,7 @@ function renderSoundBtn(){const r=$("soundRow");if(!r)return;const on=soundOn();
 /* avvisi solo se la novità è davvero recente: se il telefono si risveglia ore dopo, non ripropone i gol di ieri */
 function isFresh(L,t,mins){try{const [h,m]=String(t||"").split(":").map(Number);if(isNaN(h)||isNaN(m)||!L||!L.date)return false;const d=new Date(L.date+"T00:00:00");d.setHours(h,m,0,0);return Math.abs(Date.now()-d.getTime())<=mins*6e4}catch(_){return false}}
 function notifyLive(prev,now){
-  if(!now)return;const team=S.settings.team||"DF Academy";const home=now.where!=="trasferta";
+  if(!now||window.__pushOn)return;const team=S.settings.team||"DF Academy";const home=now.where!=="trasferta";
   const score=home?`${team} ${now.gf}–${now.ga} ${now.opp}`:`${now.opp} ${now.ga}–${now.gf} ${team}`;
   if(!prev){if(!isFresh(now,now.updated||((now.events||[])[0]||{}).t,15))return;const m=`Diretta iniziata: ${team} - ${now.opp}`;showToast("🔴 "+m,false);systemNotify("DF Academy",m);return}
   const pe=(prev.events||[]).length,ne=(now.events||[]);if(ne.length<=pe)return;
