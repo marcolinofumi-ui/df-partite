@@ -374,3 +374,40 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .poster .pl{display:flex;flex-direction:column;gap:2px}.poster .pl small{color:var(--muted)}
 .padm{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
 .padm .btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-4px;margin-right:6px}
+
+/* podio marcatori */
+.podium-sec{margin:14px 0}.podium-sec h2{font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.pod{display:flex;align-items:flex-end;justify-content:center;gap:10px}.pc{flex:1;text-align:center;min-width:0}
+.pc .av{width:42px;height:42px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-size:16px;background:var(--club);color:#fff;border:2px solid var(--ball)}
+.pc .blk{border-radius:12px 12px 0 0;background:var(--surface-2);border:1px solid var(--line);border-bottom:0;display:flex;align-items:center;justify-content:center}
+.pc .blk b{font-family:var(--display);font-size:30px;font-weight:800;color:var(--fg)}
+.pc.pos1 .av{width:50px;height:50px;box-shadow:0 0 0 3px var(--ball)}.pc.pos1 .blk{background:linear-gradient(180deg,var(--ball),#d8c60a);border-color:#d8c60a}.pc.pos1 .blk b{color:#141a2e}
+.pc small{display:block;margin-top:6px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pc.me small:after{content:" ★"}
+/* tabellone in diretta */
+.live-card{background:radial-gradient(120% 100% at 50% 0,#1d3a8f 0,#0b1230 72%);color:#fff;border-color:var(--loss);position:relative;overflow:hidden}
+.live-card:before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:1px solid #ffffff14;pointer-events:none}
+.live-card:after{content:"";position:absolute;left:50%;top:92px;width:120px;height:120px;margin:-60px;border:1px solid #ffffff14;border-radius:50%;pointer-events:none}
+.live-card .live-top,.live-card .hint,.live-card .status{color:#c8d0f2}
+.live-card .live-score{position:relative;z-index:1}.live-card .live-score .tm{color:#fff}.live-card .live-score .tm.us{color:var(--ball)}
+.live-card .live-score .sc{font-size:72px;color:#fff;text-shadow:0 0 26px #f8ec1c66}
+.live-card .feed,.live-card .live-foot,.live-card .live-ctrl,.live-card .live-quick,.live-card .live-note{position:relative;z-index:1}
+.live-card .btn-ghost{color:#fff;border-color:#ffffff40}
+.sc.bump{animation:bump .9s cubic-bezier(.2,1.6,.4,1)}
+@keyframes bump{0%{transform:scale(.6);opacity:.3}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden}
+.confetti i{position:absolute;top:-16px;width:9px;height:15px;border-radius:2px;opacity:.95;animation:fall linear forwards}
+@keyframes fall{to{transform:translate(var(--dx),110vh) rotate(var(--rot));opacity:.9}}
+@media (prefers-reduced-motion:reduce){.sc.bump{animation:none}}
+/* prossima partita: blocchi + testata */
+.cd{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0}
+.cd div{background:var(--surface-2);border-radius:10px;padding:8px 0;text-align:center}
+.cd b{display:block;font-family:var(--display);font-size:28px;font-weight:800;line-height:1.05;color:var(--accent);font-variant-numeric:tabular-nums}
+.cd span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.upc.has-hero{overflow:hidden}
+.u-hero{margin:-14px -16px 4px;height:92px;overflow:hidden;cursor:pointer;position:relative}
+.u-hero img{width:calc(100% + 8px);height:100%;margin:0 -4px;object-fit:cover;object-position:center 25%;filter:blur(3px) brightness(.75) saturate(1.1);display:block;background:var(--club)}
+.u-hero:after{content:"Apri la locandina";position:absolute;right:10px;bottom:8px;font-size:11px;font-weight:700;color:#fff;background:#0009;border-radius:999px;padding:3px 9px}
+.live-card .live-score{gap:8px}
+.live-card .live-score .tm{font-size:16px;overflow-wrap:normal;word-break:normal;hyphens:none;text-transform:uppercase;letter-spacing:.02em}
+.live-card .live-score .sc{font-size:56px}
+.live-card .live-score .tm{font-size:13px}.live-card .live-score .sc{font-size:50px}

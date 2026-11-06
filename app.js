@@ -100,6 +100,11 @@ function render(){
   const tally={};list.forEach(m=>(m.scorers||[]).forEach(s=>{const k=norm(s.name);if(!k)return;tally[k]=tally[k]||{name:s.name.trim(),goals:0,games:0};tally[k].goals+=Number(s.goals)||0;tally[k].games++}));
   const rank=Object.values(tally).sort((a,b)=>b.goals-a.goals||a.name.localeCompare(b.name));
   const max=rank[0]?rank[0].goals:1;
+  // podio marcatori
+  (function(){const el=$("podium");if(!el)return;const top=rank.slice(0,3);if(!top.length){el.innerHTML="";el.hidden=true;return}el.hidden=false;
+    const ini=n=>n.split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();const hts=[64,92,44];
+    const order=[top[1],top[0],top[2]].map((p,i)=>p?{p,pos:i===1?1:i===0?2:3,h:hts[i]}:null);
+    el.innerHTML=`<h2>Marcatori</h2><div class="pod">${order.map(o=>o?`<div class="pc pos${o.pos}${isKid(o.p.name)?" me":""}"><span class="av">${esc(ini(o.p.name))}</span><div class="blk" style="height:${o.h}px"><b>${o.p.goals}</b></div><small>${esc(shortName(o.p.name))}</small></div>`:`<div class="pc"></div>`).join("")}</div>`})();
   // rosa
   const pres={};list.forEach(m=>(m.presenti||[]).forEach(n=>{const k=norm(n);pres[k]=(pres[k]||0)+1}));
   const ROLES=[["Portiere","POR","Portieri"],["Difensore","DIF","Difensori"],["Centrocampista","CEN","Centrocampisti"],["Attaccante","ATT","Attaccanti"],["Da definire","?","Ruolo da definire"]];
@@ -279,9 +284,13 @@ function setTab(t,noScroll){if(!TABS.includes(t))t="home";activeTab=t;LS.set("ta
   try{history.replaceState(null,"","#"+t)}catch(_){}
   if(!noScroll)window.scrollTo({top:0,behavior:"instant"})}
 document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.tab)));
+let lastSc=null;
+function confetti(){try{if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;const h=document.createElement("div");h.className="confetti";const cols=["#f8ec1c","#6fd294","#f08a7d","#7fa6ff","#ffffff"];
+  h.innerHTML=Array.from({length:42},(_,i)=>`<i style="left:${Math.random()*100}%;background:${cols[i%5]};animation-delay:${(Math.random()*.5).toFixed(2)}s;animation-duration:${(1.8+Math.random()*1.2).toFixed(2)}s;--dx:${Math.round(Math.random()*120-60)}px;--rot:${Math.round(Math.random()*720)}deg"></i>`).join("");
+  document.body.appendChild(h);setTimeout(()=>h.remove(),3400)}catch(_){}}
 function renderLive(){renderNext();updateAlertBar();$("tabLiveDot").hidden=!S.live;
   const L=S.live,box=$("liveBox"),sec=$("liveSec");const team=S.settings.team||"DF Academy";
-  if(!L){sec.hidden=readOnly;box.innerHTML=readOnly?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button></div>`;return}
+  if(!L){lastSc=null;sec.hidden=readOnly;box.innerHTML=readOnly?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button></div>`;return}
   sec.hidden=false;const home=L.where!=="trasferta";
   const left=home?team:L.opp,right=home?L.opp:team,ls=home?L.gf:L.ga,rs=home?L.ga:L.gf;
   const ev=[...(L.events||[])].reverse().map(e=>`<li class="${e.type}"><span class="t">${esc(e.t)}</span><span class="ev">${esc(e.text)}</span></li>`).join("");
@@ -295,13 +304,13 @@ function renderLive(){renderNext();updateAlertBar();$("tabLiveDot").hidden=!S.li
     (liveConfirm==="end"?`<span class="confirm" style="color:var(--fg)">Chiudere la diretta e salvare la partita?</span><span style="display:flex;gap:6px"><button type="button" class="btn btn-ghost btn-sm" data-live="no">No</button><button type="button" class="btn btn-primary btn-sm" data-live="endok">Salva partita</button></span>`
     :liveConfirm==="cancel"?`<span class="confirm">Annullare la diretta senza salvare?</span><span style="display:flex;gap:6px"><button type="button" class="btn btn-ghost btn-sm" data-live="no">No</button><button type="button" class="btn btn-danger btn-sm" data-live="cancelok">Annulla diretta</button></span>`
     :`<span style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-live="undo"${(L.events||[]).length?"":" disabled"}>Annulla ultimo</button><button type="button" class="btn btn-ghost btn-sm" data-live="cancel">Annulla diretta</button></span><button type="button" class="btn btn-primary btn-sm" data-live="end">Fine partita</button>`);
-  box.innerHTML=`<div class="live-card">
+  const scNow=ls+"-"+rs;box.innerHTML=`<div class="live-card">
     <div class="live-top"><span class="live-badge"><i></i>DIRETTA</span><span>${esc(L.comp||"")}</span><span>·</span><span>${home?"In casa":"In trasferta"}</span>${L.updated?`<span>· agg. ${esc(L.updated)}</span>`:""}</div>
-    <div class="live-score"><span class="tm ${home?"us":""}">${esc(left)}</span><span class="sc">${ls}–${rs}</span><span class="tm ${home?"":"us"}">${esc(right)}</span></div>
+    <div class="live-score"><span class="tm ${home?"us":""}">${esc(left)}</span><span class="sc${lastSc!==null&&lastSc!==ls+"-"+rs?" bump":""}">${ls}–${rs}</span><span class="tm ${home?"":"us"}">${esc(right)}</span></div>
     ${ctrl}
     ${ev?`<ul class="feed">${ev}</ul>`:`<div class="status">Ancora nessun aggiornamento.</div>`}
     <div class="live-foot">${foot}<button type="button" class="btn btn-ghost btn-sm share-btn" data-live="share">Condividi</button></div>
-  </div>`;
+  </div>`;lastSc=scNow;
   const nf=$("liveNote");if(nf)nf.onsubmit=async e=>{e.preventDefault();const t=$("liveNoteTxt").value.trim();if(!t)return;await liveEvent({type:"nota",text:t})};
 }
 async function liveEvent(e,mut){const t=nowHM();e.t=t;return commit(st=>{const L=st.live;if(!L)return;L.events=L.events||[];L.events.push(e);L.updated=t;if(mut)mut(L)})}
@@ -314,7 +323,7 @@ $("liveBox").addEventListener("click",async e=>{const b=e.target.closest("[data-
   if(a==="gol"){livePick=true;renderLive();return}
   if(a==="pickclose"){livePick=false;renderLive();return}
   if(a==="scorer"){livePick=false;const n=b.dataset.n;const sc=L.gf+1;const txt=`GOL ${S.settings.team||"DF"}! ${n?shortName(n)+" · ":""}${L.where==="trasferta"?(L.ga+"–"+sc):(sc+"–"+L.ga)}`;
-    await liveEvent({type:"gol",text:txt,scorer:n},x=>{x.gf+=1});cheer();return}
+    await liveEvent({type:"gol",text:txt,scorer:n},x=>{x.gf+=1});cheer();confetti();return}
   if(a==="golavv"){const sc=L.ga+1;await liveEvent({type:"golavv",text:`Gol ${L.opp} · ${L.where==="trasferta"?(sc+"–"+L.gf):(L.gf+"–"+sc)}`},x=>{x.ga+=1});return}
   if(a==="quick"){await liveEvent({type:"nota",text:b.dataset.q});return}
   if(a==="undo"){await commit(st=>{const x=st.live;const ev=(x.events||[]).pop();if(ev){if(ev.type==="gol")x.gf=Math.max(0,x.gf-1);if(ev.type==="golavv")x.ga=Math.max(0,x.ga-1)}x.updated=nowHM()});return}
@@ -346,16 +355,19 @@ function nextCountdown(n){const now=Date.now(),st=n.start.getTime(),lf=n.liveFro
   const m=Math.round((st-now)/6e4),d=Math.floor(m/1440),o=Math.floor((m%1440)/60),mi=m%60;
   return"Mancano "+(d?d+" g "+o+" h":o?o+" h "+mi+" min":mi+" min")+" al calcio d'inizio."}
 const safeUrl=u=>/^https?:\/\//i.test(String(u||"").trim())?String(u).trim():"";
+function cdBlocks(n){const now=Date.now(),st=n.start.getTime(),lf=n.liveFrom.getTime();if(now>=lf)return"";
+  const t=Math.max(0,Math.floor((st-now)/1000)),d=Math.floor(t/86400),h=Math.floor(t%86400/3600),m=Math.floor(t%3600/60),sc=t%60,p=v=>String(v).padStart(2,"0");
+  return `<div class="cd" data-cd="${esc(n.id)}" aria-hidden="true">${[[d,"giorni"],[p(h),"ore"],[p(m),"min"],[p(sc),"sec"]].map(([v,l])=>`<div><b>${v}</b><span>${l}</span></div>`).join("")}</div>`}
 function nextCard(n,first){const team=S.settings.team||"DF Academy";const home=n.where==="casa";
   const teams=home?`<span class="us">${esc(team)}</span> – ${esc(n.opp)}`:`${esc(n.opp)} – <span class="us">${esc(team)}</span>`;
   const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
   const isUrl=/^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)/i.test(n.addr||"");const map=n.addr?`<a class="u-map" target="_blank" rel="noopener" href="${isUrl?esc(n.addr):"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(n.addr)}">📍 ${isUrl?"Indicazioni sul campo":esc(n.addr)} · Apri la mappa</a>`:"";
   const acts=`<div class="u-actions"><button type="button" class="btn btn-ghost btn-sm" data-next="ics" data-id="${esc(n.id)}">📅 Aggiungi al calendario</button>`+(readOnly?"":`<button type="button" class="btn btn-primary btn-sm" data-next="live" data-id="${esc(n.id)}">● Avvia diretta</button><button type="button" class="btn btn-ghost btn-sm" data-next="edit" data-id="${esc(n.id)}">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-next="del" data-id="${esc(n.id)}">Rimuovi</button>`)+`</div>`;
-  return `<div class="upc${first?"":" small"}"><div class="u-top"><span class="u-badge">${first?"PROSSIMA PARTITA":"IN ARRIVO"}</span><span>${home?"In casa":"In trasferta"}</span>${n.comp?`<span>· ${esc(n.comp)}</span>`:""}</div>
+  return `<div class="upc${first?"":" small"}${n.poster&&n.poster.i?" has-hero":""}">${n.poster&&n.poster.i?`<div class="u-hero" data-poster-open="${esc(n.id)}"><img alt="" data-t="${esc(n.poster.t||n.poster.i)}"${PIC[n.poster.t||n.poster.i]?` src="${PIC[n.poster.t||n.poster.i]}"`:""}></div>`:""}<div class="u-top"><span class="u-badge">${first?"PROSSIMA PARTITA":"IN ARRIVO"}</span><span>${home?"In casa":"In trasferta"}</span>${n.comp?`<span>· ${esc(n.comp)}</span>`:""}</div>
     <div class="u-teams">${teams}</div>
     <div class="u-when">${esc(day)} · ore ${esc(n.time||"")}</div>${map}
     <div class="u-live">Convocazioni e diretta dalle <b>${hm(n.liveFrom)}</b> (45 minuti prima).</div>
-    <div class="u-count" data-countdown data-id="${esc(n.id)}">${nextCountdown(n)}</div>${posterBlock(n)}${acts}${posterAdmin(n)}</div>`}
+    ${cdBlocks(n)}<div class="u-count" data-countdown data-id="${esc(n.id)}">${nextCountdown(n)}</div>${posterBlock(n)}${acts}${posterAdmin(n)}</div>`}
 function posterBlock(n){const p=n.poster;if(!p||!p.i)return"";
   return `<button type="button" class="poster" data-poster-open="${esc(n.id)}" aria-label="Apri la locandina"><span class="pt"><img alt="" data-t="${esc(p.t||p.i)}"${PIC[p.t||p.i]?` src="${PIC[p.t||p.i]}"`:""}></span><span class="pl"><b>Locandina della partita</b><small>Tocca per aprirla a schermo intero</small></span></button>`}
 function posterAdmin(n){if(readOnly)return"";const has=n.poster&&n.poster.i;
@@ -380,6 +392,7 @@ function renderNext(){const list=getNexts();const hosts=[$("nextHome"),$("nextLi
   const html=list.map((n,i)=>nextCard(n,i===0)).join("")+(readOnly?"":`<button type="button" class="btn btn-ghost btn-sm" data-next="add">+ Aggiungi partita in arrivo</button>`)+(!list.length&&!readOnly?`<div class="status">Nessuna partita in arrivo.</div>`:"");
   hosts.forEach(h=>{if(h)h.innerHTML=html});
 }
+setInterval(()=>{if(S.live||document.hidden)return;const l=getNexts();document.querySelectorAll("[data-cd]").forEach(e=>{const n=l.find(x=>x.id===e.dataset.cd);if(!n)return;const t=cdBlocks(n);if(!t){e.remove();return}const w=document.createElement("div");w.innerHTML=t;e.innerHTML=w.firstChild.innerHTML})},1000);
 setInterval(()=>{if(S.live)return;const l=getNexts();document.querySelectorAll("[data-countdown]").forEach(e=>{const n=l.find(x=>x.id===e.dataset.id);if(n)e.textContent=nextCountdown(n)})},30000);
 function icsFile(n){const p=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"T"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0")+"00";
   const e=s=>String(s||"").replace(/[\\,;]/g,"\\$&").replace(/\n/g,"\\n");const team=S.settings.team||"DF Academy";const title=n.where==="casa"?`${team} - ${n.opp}`:`${n.opp} - ${team}`;
@@ -595,7 +608,7 @@ function notifyLive(prev,now){
   const fresh=ne.slice(pe).filter(e=>e.type==="gol"||e.type==="golavv");if(!fresh.length)return;
   const last=fresh[fresh.length-1],ours=last.type==="gol";
   const head=ours?"⚽ GOL DF ACADEMY!":"Gol avversario";
-  showToast(`${head} ${score}${ours&&last.scorer?" · "+last.scorer:""}`,!ours);if(ours)cheer();
+  showToast(`${head} ${score}${ours&&last.scorer?" · "+last.scorer:""}`,!ours);if(ours){cheer();confetti()}
   try{if(navigator.vibrate)navigator.vibrate(ours?[250,100,250,100,400]:[300])}catch(_){}
   systemNotify(head,`${score}${ours&&last.scorer?" · segna "+last.scorer:""}`)}
 function updateAlertBar(){const b=$("alertBar");if(!b)return;b.hidden=!(S.live&&"Notification" in window&&Notification.permission==="default")}
