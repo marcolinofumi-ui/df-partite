@@ -24,7 +24,7 @@
     <img src="icons/crest-240.png" alt="Stemma DF Academy" width="96" height="104">
     <h1>DF Academy<br><span>Le partite</span></h1>
     <label class="field"><span class="label">Utente</span><input type="text" id="lgUser" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
-    <label class="field"><span class="label">Password</span><input type="password" id="lgPass" autocomplete="current-password" required></label>
+    <label class="field"><span class="label">Password</span><span class="pw"><input type="password" id="lgPass" autocomplete="current-password" required><button type="button" class="pw-eye" data-eye="lgPass" aria-label="Mostra password" aria-pressed="false"></button></span></label>
     <div class="hint warn" id="loginErr" hidden></div>
     <button type="submit" class="btn btn-primary" id="lgBtn">Entra</button>
     <p class="hint">Le credenziali te le dà il referente della squadra.</p>
@@ -50,6 +50,7 @@
     <button type="button" data-tab="live"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 6.3a8 8 0 010 11.4"/></svg><span>Diretta</span><i class="tdot" id="tabLiveDot" hidden></i></button>
     <button type="button" data-tab="partite"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg><span>Partite</span></button>
     <button type="button" data-tab="rosa"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 3-6 6-6s6 2 6 6M16 5a3 3 0 010 6M18 14c2 .7 3 2.600 3 6"/></svg><span>Rosa</span></button>
+    <button type="button" data-tab="utenti" id="tabUtenti" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3.500-6 7-6s7 2 7 6M19 4v4M17 6h4"/></svg><span>Utenti</span></button>
   </nav>
 
   <div class="sound-row" id="soundRow" data-pane="live"></div>
@@ -91,6 +92,12 @@
   <section class="podium-sec" id="podium" data-pane="home" aria-label="Classifica marcatori" hidden></section>
 
   <div class="reportbar" data-pane="home"><button type="button" class="btn btn-ghost" id="reportBtn">🖨️ Report di stagione (stampa / PDF)</button></div>
+
+  <section class="section" data-pane="utenti" id="usersSec" aria-labelledby="hUsers">
+    <div class="section-head"><h2 id="hUsers">Utenti e ruoli</h2><button type="button" class="btn btn-primary btn-sm" id="uAdd">+ Nuovo utente</button></div>
+    <p class="hint">Admin: può modificare tutto. Lettore: può solo consultare. Le modifiche valgono subito.</p>
+    <div id="uList" class="ulist"><p class="status">Caricamento…</p></div>
+  </section>
 
   <section class="section" data-pane="rosa" aria-labelledby="hRoster">
     <div class="section-head">
@@ -215,6 +222,19 @@
   </form>
 </div>
 
+<div class="sheet-bg" id="userBg" hidden>
+  <form class="sheet" id="userForm" novalidate autocomplete="off">
+    <h3 id="uTitle">Nuovo utente</h3>
+    <label class="field"><span class="label">Utente</span><input type="text" id="uName" autocapitalize="none" spellcheck="false" autocomplete="off" maxlength="30" placeholder="es. mario.rossi"></label>
+    <label class="field"><span class="label" id="uPassLbl">Password</span><span class="pw"><input type="password" id="uPass" autocomplete="new-password"><button type="button" class="pw-eye" data-eye="uPass" aria-label="Mostra password" aria-pressed="false"></button></span></label>
+    <label class="field"><span class="label">Ruolo</span><select id="uRole"><option value="lettore">Lettore · solo consulta</option><option value="admin">Admin · può modificare</option></select></label>
+    <div class="hint warn" id="uErr" hidden></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="uCancel">Annulla</button>
+      <button type="submit" class="btn btn-primary">Salva</button>
+    </div>
+  </form>
+</div>
 <div class="sheet-bg" id="convBg" hidden>
   <form class="sheet" id="convForm" novalidate>
     <h3>Convocazioni</h3>

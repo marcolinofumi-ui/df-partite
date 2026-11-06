@@ -290,7 +290,8 @@ textarea{min-height:60px;resize:vertical}
 .wrap[data-active="home"] [data-pane]:not([data-pane="home"]),
 .wrap[data-active="live"] [data-pane]:not([data-pane="live"]),
 .wrap[data-active="partite"] [data-pane]:not([data-pane="partite"]),
-.wrap[data-active="rosa"] [data-pane]:not([data-pane="rosa"]){display:none!important}
+.wrap[data-active="rosa"] [data-pane]:not([data-pane="rosa"]),
+.wrap[data-active="utenti"] [data-pane]:not([data-pane="utenti"]){display:none!important}
 .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px;position:sticky;top:6px;z-index:20}
 .tabs button{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;padding:8px 4px;border-radius:12px;cursor:pointer;min-width:0}
 .tabs button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -421,3 +422,15 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .cv-g h5{margin:10px 0 2px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.cv-g p{margin:0;font-weight:600;line-height:1.4}
 .cv-note{margin:8px 0 6px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted)}
 .conv .btn{margin-top:8px}
+
+/* password visibile + utenti */
+.pw{position:relative;display:block}.pw input{padding-right:46px}
+.pw-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:38px;height:34px;border:0;background:transparent;color:var(--muted);cursor:pointer;border-radius:8px;display:grid;place-items:center}
+.pw-eye svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pw-eye[aria-pressed="true"]{color:var(--accent)}
+.ulist{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.urow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px}
+.urow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.urow .badge{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);color:var(--muted)}
+.urow .badge.adm{background:var(--club);color:#fff}
+.urow .me{font-size:12px;color:var(--muted)}

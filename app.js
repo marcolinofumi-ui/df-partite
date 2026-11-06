@@ -276,15 +276,42 @@ $("addPlayerForm").addEventListener("submit",async e=>{
 });
 $("filters").addEventListener("click",e=>{const b=e.target.closest("[data-c]");if(b){filter=b.dataset.c;render()}});
 
+
+/* ---------- occhio password ---------- */
+const EYE_ON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.2A9.500 9.500 0 0112 6c6.500 0 10 6 10 6a17 17 0 01-3.200 3.800M6.500 7.600C3.800 9.300 2 12 2 12s3.500 6 10 6c1.500 0 2.800-.3 4-.8M9.900 9.900a3 3 0 004.200 4.200"/></svg>';
+function eyeSet(b,show){const i=$(b.dataset.eye);if(!i)return;i.type=show?"text":"password";b.setAttribute("aria-pressed",show?"true":"false");b.setAttribute("aria-label",show?"Nascondi password":"Mostra password");b.innerHTML=show?EYE_OFF:EYE_ON}
+document.querySelectorAll("[data-eye]").forEach(b=>{eyeSet(b,false);b.addEventListener("click",()=>{eyeSet(b,$(b.dataset.eye).type==="password");$(b.dataset.eye).focus()})});
+
+/* ---------- utenti e ruoli (solo admin) ---------- */
+let USERS=[],userEdit=null;
+const UERR={utente_non_valido:"Nome utente non valido: 2-30 caratteri tra lettere minuscole, numeri, punto, trattino.",password_corta:"La password deve avere almeno 4 caratteri.",utente_esiste:"Esiste già un utente con questo nome.",utente_non_trovato:"Utente non trovato.",ultimo_admin:"Deve restare almeno un admin.",no_auto_eliminazione:"Non puoi eliminare il tuo utente.",azione_sconosciuta:"Il foglio Google non è ancora aggiornato per gestire gli utenti: ridistribuisci lo script."};
+const uMsg=e=>UERR[e&&e.code]||errMsg(e);
+function renderUsers(){const me=SESSION&&SESSION.user;$("uList").innerHTML=USERS.length?USERS.map(u=>`<div class="urow"><b>${esc(u.user)}</b>${u.user===me?'<span class="me">tu</span>':""}<span class="badge${u.role==="admin"?" adm":""}">${u.role==="admin"?"Admin":"Lettore"}</span><button type="button" class="btn btn-ghost btn-sm" data-uedit="${esc(u.user)}">Modifica</button>${u.user===me?"":`<button type="button" class="btn btn-ghost btn-sm" data-udel="${esc(u.user)}">Elimina</button>`}</div>`).join(""):'<p class="status">Nessun utente.</p>'}
+async function loadUsers(){if(readOnly)return;try{const j=await api("usersList",{token:SESSION.token});USERS=j.users;renderUsers()}catch(e){$("uList").innerHTML=`<p class="status">${esc(uMsg(e))}</p>`}}
+function openUser(name){userEdit=name||null;const u=USERS.find(x=>x.user===name);$("uTitle").textContent=u?"Modifica utente":"Nuovo utente";$("uName").value=u?u.user:"";$("uName").readOnly=!!u;$("uPass").value="";$("uPassLbl").textContent=u?"Nuova password (vuoto = non cambiare)":"Password";$("uRole").value=u?u.role:"lettore";$("uErr").hidden=true;document.querySelectorAll("#userForm [data-eye]").forEach(b=>eyeSet(b,false));$("userBg").hidden=false;setTimeout(()=>(u?$("uPass"):$("uName")).focus(),50)}
+$("uAdd").onclick=()=>openUser(null);
+$("uCancel").onclick=()=>$("userBg").hidden=true;
+$("userBg").addEventListener("click",e=>{if(e.target===$("userBg"))$("userBg").hidden=true});
+$("userForm").addEventListener("submit",async e=>{e.preventDefault();const name=$("uName").value.trim().toLowerCase(),pass=$("uPass").value,role=$("uRole").value,err=$("uErr");
+  try{const j=await api("userSave",{token:SESSION.token,name,pass,role,isNew:!userEdit});
+    if(j.token){SESSION.token=j.token;LS.set("session",SESSION)}
+    $("userBg").hidden=true;await loadUsers()}catch(x){if(["sessione_scaduta","sessione_non_valida","accesso_richiesto"].includes(x.code)){logout(errMsg(x));return}err.textContent=uMsg(x);err.hidden=false}});
+$("uList").addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.uedit){openUser(b.dataset.uedit);return}
+  if(b.dataset.udel){const n=b.dataset.udel;if(b.dataset.sure!=="1"){b.dataset.sure="1";b.textContent="Conferma eliminazione";setTimeout(()=>{if(b.isConnected){b.dataset.sure="";b.textContent="Elimina"}},4000);return}
+    try{await api("userDel",{token:SESSION.token,name:n});await loadUsers()}catch(x){b.dataset.sure="";b.textContent="Elimina";{const p=document.createElement("p");p.className="hint warn";p.textContent=uMsg(x);$("uList").prepend(p);setTimeout(()=>p.remove(),5000)}}}});
+function syncUsersTab(){const t=$("tabUtenti");if(t)t.hidden=readOnly;if(readOnly&&activeTab==="utenti")setTab("home")}
+
 /* ---------- diretta ---------- */
 const nowHM=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 const shortName=n=>{const p=n.split(" ");return p.length>1?p.slice(1).join(" "):n};
-const TABS=["home","live","partite","rosa"];let activeTab=TABS.includes(LS.get("tab"))?LS.get("tab"):"home";
-function setTab(t,noScroll){if(!TABS.includes(t))t="home";activeTab=t;LS.set("tab",t);$("app").dataset.active=t;
+const TABS=["home","live","partite","rosa","utenti"];let activeTab=TABS.includes(LS.get("tab"))?LS.get("tab"):"home";
+function setTab(t,noScroll){if(!TABS.includes(t)||(t==="utenti"&&readOnly))t="home";activeTab=t;LS.set("tab",t);$("app").dataset.active=t;
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===t?"page":"false"));
   try{history.replaceState(null,"","#"+t)}catch(_){}
   if(!noScroll)window.scrollTo({top:0,behavior:"instant"})}
-document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.tab)));
+document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>{setTab(b.dataset.tab);if(b.dataset.tab==="utenti")loadUsers()}));
 let lastSc=null;
 function confetti(){try{if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;const h=document.createElement("div");h.className="confetti";const cols=["#f8ec1c","#6fd294","#f08a7d","#7fa6ff","#ffffff"];
   h.innerHTML=Array.from({length:42},(_,i)=>`<i style="left:${Math.random()*100}%;background:${cols[i%5]};animation-delay:${(Math.random()*.5).toFixed(2)}s;animation-duration:${(1.8+Math.random()*1.2).toFixed(2)}s;--dx:${Math.round(Math.random()*120-60)}px;--rot:${Math.round(Math.random()*720)}deg"></i>`).join("");
@@ -688,7 +715,7 @@ async function refresh(force){
     if(!force&&VERSION){const v=await api("version",{token:SESSION.token});if(v.version===VERSION)return}
     const j=await api("get",{token:SESSION.token});
     if(j.role!==SESSION.role){SESSION.role=j.role;LS.set("session",SESSION)}
-    readOnly=j.role!=="admin";
+    readOnly=j.role!=="admin";syncUsersTab();
     const prevLive=S.live;S=normState(j.state);VERSION=j.version;LS.set("cache",{state:S,version:VERSION});
     if(liveSeen)notifyLive(prevLive,S.live);liveSeen=true;
     if(!readOnly&&!persistedNext&&S.matches.length&&!S.settings.nextList){persistedNext=true;setTimeout(()=>saveNexts(readNexts()),400)}
@@ -707,7 +734,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 async function boot(){
   if(!SESSION){showLogin("");return}
   $("login").hidden=true;$("app").hidden=false;
-  readOnly=SESSION.role!=="admin";
+  readOnly=SESSION.role!=="admin";syncUsersTab();
   $("whoami").textContent=SESSION.user+(readOnly?"":" · modifica");
   const c=LS.get("cache");if(c&&c.state){S=normState(c.state);VERSION=c.version;render()}else{setStatus("Caricamento delle partite…",false);render()}
   await refresh(true);if($("status").textContent==="Caricamento delle partite…")setStatus("",false);
