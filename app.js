@@ -387,7 +387,7 @@ function pushState(){try{window.__pushOn=!!(window.__OS&&window.__OS.User.PushSu
 function initPush(){if(!PUSH_ID||window.__osInit||!SESSION||readOnly)return;window.__osInit=true;
   window.OneSignalDeferred=window.OneSignalDeferred||[];
   window.OneSignalDeferred.push(async OS=>{try{const base=new URL("./",location.href).pathname;
-    await OS.init({appId:PUSH_ID,serviceWorkerPath:"sw.js",serviceWorkerParam:{scope:base},notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true});
+    await OS.init({appId:PUSH_ID,serviceWorkerPath:base.replace(/^\//,"")+"sw.js",serviceWorkerParam:{scope:base},serviceWorkerOverrideForTypical:true,notifyButton:{enable:false},allowLocalhostAsSecureOrigin:true,promptOptions:{autoPrompt:false,slidedown:{prompts:[]}}});
     window.__OS=OS;try{OS.User.PushSubscription.addEventListener("change",pushState)}catch(_){}
     if(SESSION)try{await OS.login(SESSION.user)}catch(_){}pushState()}catch(e){window.__osErr=String(e&&e.message||e);pushRow()}});
   const sc=document.createElement("script");sc.src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";sc.defer=true;sc.onerror=()=>{};document.head.appendChild(sc)}
