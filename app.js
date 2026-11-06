@@ -1,3 +1,5 @@
+/* html vecchio in cache con app.js nuovo: ricarico una volta aggirando la cache */
+if(!document.getElementById("userBg")){try{if(!sessionStorage.getItem("dfskew")){sessionStorage.setItem("dfskew","1");(window.caches?caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))):Promise.resolve()).finally(()=>location.replace(location.pathname+"?v="+Date.now()+location.hash))}}catch(_){}throw new Error("html non aggiornato")}
 "use strict";
 /* DF Academy · Partite — PWA
    Dati su Google Sheets tramite Apps Script (vedi config.js). */

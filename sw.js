@@ -1,6 +1,6 @@
 // Service worker: tiene in cache la "scocca" dell'app per aprirla anche offline.
 // I dati arrivano sempre da Google (mai messi in cache qui): l'app conserva l'ultima copia in locale.
-const CACHE = "df-partite-v23";
+const CACHE = "df-partite-v24";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "config.js", "manifest.webmanifest",
   "icons/crest-240.png", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
@@ -11,7 +11,7 @@ self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return; // Google Apps Script e font: rete diretta
   // rete prima, cache come riserva: così gli aggiornamenti dell'app arrivano subito
-  e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(CACHE).then(cc => cc.put(e.request, c)); return r; })
+  e.respondWith(fetch(e.request,{cache:"no-cache"}).then(r => { const c = r.clone(); caches.open(CACHE).then(cc => cc.put(e.request, c)); return r; })
     .catch(() => caches.match(e.request).then(r => r || caches.match("index.html"))));
 });
 self.addEventListener("notificationclick", e => {
