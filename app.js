@@ -337,6 +337,66 @@ $("liveBox").addEventListener("click",async e=>{const b=e.target.closest("[data-
     st.matches.push({id:newId("m"),n,date:x.date,opp:x.opp,comp:x.comp,where:x.where,gf:x.gf,ga:x.ga,scorers:Object.entries(tally).map(([name,goals])=>({name,goals})),presenti:x.presenti||[],note:"",...(x.from&&x.from.poster?{x:{poster:x.from.poster}}:{})});st.live=null});return}
 });
 
+
+/* ---------- convocazioni ---------- */
+const CONV_ROLES=[["Portiere","Portieri"],["Difensore","Difensori"],["Centrocampista","Centrocampisti"],["Attaccante","Attaccanti"],["Da definire","Altri"]];
+const roleOf=p=>CONV_ROLES.slice(0,4).some(r=>r[0]===p.role)?p.role:"Da definire";
+function groupNames(names){return CONV_ROLES.map(([role,label])=>({label,list:names.filter(nm=>{const p=S.players.find(x=>x.name===nm);return (p?roleOf(p):"Da definire")===role}).sort((a,b)=>a.localeCompare(b))})).filter(g=>g.list.length)}
+function dispName(nm,all){const w=nm.trim().split(/\s+/);if(w.length<2)return nm;const sur=w.slice(1).join(" ");const dup=all.some(o=>o!==nm&&o.trim().split(/\s+/).slice(1).join(" ")===sur);return dup?sur+" "+w[0][0]+".":sur}
+function convBlock(n){const c=n.conv;if(!c||!c.names||!c.names.length)return"";const all=c.names;
+  return `<details class="conv"><summary><b>Convocazioni</b><span>${esc(c.rit?"ritrovo "+c.rit+" · ":"")}${all.length} convocati</span></summary>${groupNames(all).map(g=>`<div class="cv-g"><h5>${esc(g.label)}</h5><p>${g.list.map(x=>esc(dispName(x,all))).join(" · ")}</p></div>`).join("")}${c.note?`<p class="cv-note">${esc(c.note)}</p>`:""}<button type="button" class="btn btn-ghost btn-sm" data-next="convshare" data-id="${esc(n.id)}">Condividi la convocazione</button></details>`}
+function openConv(n){convFor=n.id;const c=n.conv||{};const has=!!(c.names&&c.names.length);const sel=new Set(has?c.names:S.players.map(p=>p.name));
+  $("convMatch").textContent=`${n.opp} · ${n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})} · ore ${n.time||""}`;
+  $("cRit").value=c.rit||hm(n.liveFrom);$("cNote").value=c.note||"";$("convErr").hidden=true;
+  const byRole=CONV_ROLES.map(([role,label])=>({label,ps:S.players.filter(p=>roleOf(p)===role).sort((a,b)=>a.name.localeCompare(b.name))})).filter(g=>g.ps.length);
+  $("cList").innerHTML=byRole.map(g=>`<div class="cv-grp"><span class="label">${esc(g.label)}</span><div class="pres-grid">${g.ps.map(p=>`<label class="pres-item"><input type="checkbox" value="${esc(p.name)}"${sel.has(p.name)?" checked":""}> ${esc(p.name)}</label>`).join("")}</div></div>`).join("")||`<p class="status">Nessun giocatore in rosa.</p>`;
+  convCount();$("convBg").hidden=false}
+let convFor=null;
+function convCount(){const k=document.querySelectorAll("#cList input:checked").length;$("cCount").textContent=k+" su "+S.players.length}
+$("cList").addEventListener("change",convCount);
+function readConv(){return{names:[...document.querySelectorAll("#cList input:checked")].map(i=>i.value),rit:$("cRit").value||"",note:$("cNote").value.trim()}}
+async function saveConv(conv){let found=false;const ok=await commit(st=>{let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const it=l.find(x=>x.id===convFor);if(!it)return;found=true;it.conv=conv.names.length?conv:null;st.settings.nextList=JSON.stringify(l)});return ok&&found}
+$("convCancel").onclick=()=>$("convBg").hidden=true;
+$("convBg").addEventListener("click",e=>{if(e.target===$("convBg"))$("convBg").hidden=true});
+async function convDone(share){const conv=readConv();if(!conv.names.length){$("convErr").textContent="Seleziona almeno un convocato.";$("convErr").hidden=false;return}
+  if(!await saveConv(conv)){$("convErr").textContent="Non riesco a salvare la convocazione.";$("convErr").hidden=false;return}
+  $("convBg").hidden=true;if(share){const n=getNexts().find(x=>x.id===convFor);if(n)shareConv(n)}}
+$("convSave").onclick=()=>convDone(false);
+$("convForm").addEventListener("submit",e=>{e.preventDefault();convDone(true)});
+function convText(n){const c=n.conv||{names:[]};const team=S.settings.team||"DF Academy";const home=n.where==="casa";
+  const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+  return [`CONVOCAZIONI ${team} – ${home?team+" vs "+n.opp:n.opp+" vs "+team}`,`${day} · ore ${n.time||""} · ${home?"in casa":"in trasferta"}`,c.rit?`Ritrovo: ${c.rit}`:"",n.addr?`Campo: ${n.addr}`:"","",`Convocati (${c.names.length}):`,...groupNames(c.names).map(g=>`${g.label}: ${g.list.map(x=>dispName(x,c.names)).join(", ")}`),c.note?"\n"+c.note:""].filter((x,i,a)=>x!==""||a[i-1]!=="").join("\n")}
+async function convImage(n){const c=n.conv;try{await document.fonts.load('800 80px "Saira Condensed"')}catch(_){}
+  const W=1080,F='"Saira Condensed","Arial Narrow",Impact,system-ui,sans-serif';const team=S.settings.team||"DF Academy";const home=n.where==="casa";
+  const groups=groupNames(c.names);const probe=document.createElement("canvas").getContext("2d");probe.font=`700 46px ${F}`;
+  const noteLines=c.note?wrapLines(probe,c.note,W-160):[];
+  let y=820;groups.forEach(g=>{y+=70+Math.ceil(g.list.length/2)*62});
+  const H=Math.max(1350,y+(noteLines.length?noteLines.length*50+50:0)+130);
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");
+  const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,"#2a4aa8");gr.addColorStop(1,"#0f1b45");g.fillStyle=gr;g.fillRect(0,0,W,H);
+  g.fillStyle="#f5e300";g.fillRect(0,0,W,18);g.fillRect(0,H-18,W,18);
+  try{const im=await loadImg("icons/crest-240.png");g.fillStyle="#fff";rr(g,70,70,170,184,28);g.fill();g.drawImage(im,82,82,146,158)}catch(_){}
+  g.textAlign="left";g.fillStyle="#f5e300";let ts=104;g.font=`800 ${ts}px ${F}`;while(g.measureText("CONVOCAZIONI").width>W-275-60&&ts>40){ts-=4;g.font=`800 ${ts}px ${F}`}g.fillText("CONVOCAZIONI",275,170);
+  g.fillStyle="#c8d0f2";g.font=`600 36px ${F}`;g.fillText((S.settings.season||"Annata 2018").toUpperCase(),277,228);
+  const fit=(txt,yy,col,max)=>{let s=84;g.font=`800 ${s}px ${F}`;while(g.measureText(txt).width>max&&s>30){s-=4;g.font=`800 ${s}px ${F}`}g.fillStyle=col;g.fillText(txt,80,yy)};
+  const left=home?team:n.opp,right=home?n.opp:team;
+  fit(left.toUpperCase(),340,left===team?"#f5e300":"#fff",920);fit("– "+right.toUpperCase(),430,right===team?"#f5e300":"#fff",920);
+  const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+  g.fillStyle="#e1e6ff";g.font=`600 44px ${F}`;g.fillText(`${day.charAt(0).toUpperCase()+day.slice(1)} · ore ${n.time||""} · ${home?"in casa":"in trasferta"}`,80,500);
+  if(n.addr&&!/^https?:/i.test(n.addr)){g.font=`600 38px ${F}`;g.fillText("📍 "+n.addr,80,556)}
+  if(c.rit){g.fillStyle="#f5e300";rr(g,80,600,920,150,28);g.fill();g.fillStyle="#141a2e";g.font=`900 120px ${F}`;g.fillText(c.rit,110,716);g.font=`800 40px ${F}`;g.fillText("RITROVO",440,684);g.font=`600 36px ${F}`;g.fillText("al campo",440,728)}
+  y=820;g.textAlign="left";
+  groups.forEach(gr2=>{g.fillStyle="#f5e300";g.font=`800 34px ${F}`;g.fillText(gr2.label.toUpperCase().split("").join(" "),80,y);y+=22;
+    g.fillStyle="#fff";g.font=`700 46px ${F}`;gr2.list.forEach((nm,i)=>{const col=i%2,row=Math.floor(i/2);g.fillStyle="#f5e300";g.fillText("•",80+col*470,y+48+row*62);g.fillStyle="#fff";g.fillText(dispName(nm,c.names),112+col*470,y+48+row*62)});
+    y+=48+Math.ceil(gr2.list.length/2)*62});
+  if(noteLines.length){g.fillStyle="rgba(255,255,255,.25)";g.fillRect(80,y,920,2);g.fillStyle="#e1e6ff";g.font=`600 40px ${F}`;noteLines.forEach((t,i)=>g.fillText(t,80,y+60+i*50))}
+  g.fillStyle="rgba(255,255,255,.7)";g.font=`600 30px ${F}`;g.fillText((S.settings.coach?team+" · mister "+(S.settings.coachAlias||S.settings.coach):team).toUpperCase(),80,H-48);g.textAlign="right";g.fillText(c.names.length+" CONVOCATI",W-80,H-48);
+  return new Promise(res=>cv.toBlob(res,"image/png"))}
+async function shareConv(n){if(!n.conv||!n.conv.names||!n.conv.names.length)return;const blob=await convImage(n);if(!blob){return}
+  const file=new File([blob],"convocazioni.png",{type:"image/png"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],text:convText(n)});return}catch(e){if(e&&e.name==="AbortError")return}}
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="convocazioni-"+(n.date||"")+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
+
 /* ---------- partite in arrivo ---------- */
 const DEFAULT_NEXTS=[{id:"n_lepanto",opp:"Accademia Lepanto",date:"2026-11-08",time:"11:00",where:"trasferta",comp:"",addr:"Via Frascineto, 67, 00173 Roma RM"}];
 let editingNext=null,liveFromNext=null;
@@ -348,7 +408,7 @@ function getNexts(){return readNexts().map(n=>{if(!n.opp||!n.date)return null;co
   return Object.assign({},n,{start:t,liveFrom:new Date(t.getTime()-45*6e4)})}).filter(Boolean).sort((x,y)=>x.start-y.start)}
 const getNext=()=>getNexts()[0]||null;
 function saveNexts(list){return commit(st=>{["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(k=>{delete st.settings[k]});
-  st.settings.nextList=JSON.stringify(list.map(x=>({id:x.id,opp:x.opp,date:x.date,time:x.time,where:x.where,comp:x.comp||"",addr:x.addr||"",poster:x.poster||null})))})}
+  st.settings.nextList=JSON.stringify(list.map(x=>({id:x.id,opp:x.opp,date:x.date,time:x.time,where:x.where,comp:x.comp||"",addr:x.addr||"",poster:x.poster||null,conv:x.conv||null})))})}
 const hm=d=>d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 function nextCountdown(n){const now=Date.now(),st=n.start.getTime(),lf=n.liveFrom.getTime();
   if(now>=st)return"La partita è iniziata.";
@@ -363,12 +423,12 @@ function nextCard(n,first){const team=S.settings.team||"DF Academy";const home=n
   const teams=home?`<span class="us">${esc(team)}</span> – ${esc(n.opp)}`:`${esc(n.opp)} – <span class="us">${esc(team)}</span>`;
   const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
   const isUrl=/^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)/i.test(n.addr||"");const map=n.addr?`<a class="u-map" target="_blank" rel="noopener" href="${isUrl?esc(n.addr):"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(n.addr)}">📍 ${isUrl?"Indicazioni sul campo":esc(n.addr)} · Apri la mappa</a>`:"";
-  const acts=`<div class="u-actions"><button type="button" class="btn btn-ghost btn-sm" data-next="ics" data-id="${esc(n.id)}">📅 Aggiungi al calendario</button>`+(readOnly?"":`<button type="button" class="btn btn-primary btn-sm" data-next="live" data-id="${esc(n.id)}">● Avvia diretta</button><button type="button" class="btn btn-ghost btn-sm" data-next="edit" data-id="${esc(n.id)}">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-next="del" data-id="${esc(n.id)}">Rimuovi</button>`)+`</div>`;
+  const acts=`<div class="u-actions"><button type="button" class="btn btn-ghost btn-sm" data-next="ics" data-id="${esc(n.id)}">📅 Aggiungi al calendario</button>`+(readOnly?"":`<button type="button" class="btn btn-primary btn-sm" data-next="live" data-id="${esc(n.id)}">● Avvia diretta</button><button type="button" class="btn btn-ghost btn-sm" data-next="conv" data-id="${esc(n.id)}">${n.conv&&n.conv.names&&n.conv.names.length?"Modifica convocazioni":"Convocazioni"}</button><button type="button" class="btn btn-ghost btn-sm" data-next="edit" data-id="${esc(n.id)}">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-next="del" data-id="${esc(n.id)}">Rimuovi</button>`)+`</div>`;
   return `<div class="upc${first?"":" small"}${n.poster&&n.poster.i?" has-hero":""}">${n.poster&&n.poster.i?`<div class="u-hero" data-poster-open="${esc(n.id)}"><img alt="" data-t="${esc(n.poster.t||n.poster.i)}"${PIC[n.poster.t||n.poster.i]?` src="${PIC[n.poster.t||n.poster.i]}"`:""}></div>`:""}<div class="u-top"><span class="u-badge">${first?"PROSSIMA PARTITA":"IN ARRIVO"}</span><span>${home?"In casa":"In trasferta"}</span>${n.comp?`<span>· ${esc(n.comp)}</span>`:""}</div>
     <div class="u-teams">${teams}</div>
     <div class="u-when">${esc(day)} · ore ${esc(n.time||"")}</div>${map}
     <div class="u-live">Convocazioni e diretta dalle <b>${hm(n.liveFrom)}</b> (45 minuti prima).</div>
-    ${cdBlocks(n)}<div class="u-count" data-countdown data-id="${esc(n.id)}">${nextCountdown(n)}</div>${posterBlock(n)}${acts}${posterAdmin(n)}</div>`}
+    ${cdBlocks(n)}<div class="u-count" data-countdown data-id="${esc(n.id)}">${nextCountdown(n)}</div>${convBlock(n)}${posterBlock(n)}${acts}${posterAdmin(n)}</div>`}
 function posterBlock(n){const p=n.poster;if(!p||!p.i)return"";
   return `<button type="button" class="poster" data-poster-open="${esc(n.id)}" aria-label="Apri la locandina"><span class="pt"><img alt="" data-t="${esc(p.t||p.i)}"${PIC[p.t||p.i]?` src="${PIC[p.t||p.i]}"`:""}></span><span class="pl"><b>Locandina della partita</b><small>Tocca per aprirla a schermo intero</small></span></button>`}
 function posterAdmin(n){if(readOnly)return"";const has=n.poster&&n.poster.i;
@@ -402,6 +462,8 @@ function icsFile(n){const p=d=>d.getFullYear()+String(d.getMonth()+1).padStart(2
     "SUMMARY:"+e(title+(n.comp?" ("+n.comp+")":"")),"LOCATION:"+e(n.addr),"DESCRIPTION:"+e("Convocazioni e diretta dalle "+hm(n.liveFrom)),"BEGIN:VALARM","TRIGGER:-PT90M","ACTION:DISPLAY","DESCRIPTION:Partita tra 90 minuti","END:VALARM","END:VEVENT","END:VCALENDAR"];
   const url=URL.createObjectURL(new Blob([L.join("\r\n")],{type:"text/calendar"}));const x=document.createElement("a");x.href=url;x.download="partita-"+n.date+".ics";document.body.appendChild(x);x.click();x.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-next]");if(!b)return;const a=b.dataset.next,id=b.dataset.id;const n=getNexts().find(x=>x.id===id);
+  if(a==="conv"&&n){openConv(n);return}
+  if(a==="convshare"&&n){shareConv(n);return}
   if(a==="ics"&&n){icsFile(n);return}
   if(a==="live"&&n){liveFromNext=n.id;openLiveForm(n);return}
   if(a==="edit"){openNextForm(readNexts().find(x=>x.id===id));return}
@@ -413,11 +475,12 @@ $("nextBg").addEventListener("click",e=>{if(e.target===$("nextBg"))$("nextBg").h
 $("nextForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("nOpp").value.trim(),date=$("nDate").value,time=$("nTime").value;
   if(!opp||!date||!time){$("nextErr").textContent="Inserisci avversario, data e ora.";$("nextErr").hidden=false;return}
   const item={id:editingNext||newId("n"),opp,date,time,where:$("nWhere").value,comp:$("nComp").value.trim(),addr:$("nAddr").value.trim()};
-  const list=readNexts();const i=list.findIndex(x=>x.id===item.id);if(i>=0){item.poster=list[i].poster||null;list[i]=item}else list.push(item);
+  const list=readNexts();const i=list.findIndex(x=>x.id===item.id);if(i>=0){item.poster=list[i].poster||null;item.conv=list[i].conv||null;list[i]=item}else list.push(item);
   const ok=await saveNexts(list);
   if(ok)$("nextBg").hidden=true;else{$("nextErr").textContent=$("status").textContent||"Non riesco a salvare.";$("nextErr").hidden=false}});
 function openLiveForm(n){$("lOpp").value=n&&n.opp||"";$("lWhere").value=n&&n.where||"casa";$("lComp").value=n&&n.comp||"Campionato";$("liveErr").hidden=true;
   $("lPres").innerHTML=[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map((p,i)=>`<label class="pres-item"><input type="checkbox" id="lp${i}" value="${esc(p.name)}"> ${esc(p.name)}</label>`).join("");
+  if(n&&n.conv&&n.conv.names&&n.conv.names.length){const cs=new Set(n.conv.names);document.querySelectorAll("#lPres input").forEach(i=>{i.checked=cs.has(i.value)})}
   $("liveBg").hidden=false;setTimeout(()=>$("lOpp").focus(),50)}
 $("liveCancel").onclick=()=>$("liveBg").hidden=true;
 $("liveBg").addEventListener("click",e=>{if(e.target===$("liveBg"))$("liveBg").hidden=true});

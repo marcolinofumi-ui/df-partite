@@ -215,6 +215,24 @@
   </form>
 </div>
 
+<div class="sheet-bg" id="convBg" hidden>
+  <form class="sheet" id="convForm" novalidate>
+    <h3>Convocazioni</h3>
+    <div class="hint" id="convMatch"></div>
+    <div class="row">
+      <label class="field"><span class="label">Ritrovo</span><input type="time" id="cRit"></label>
+      <div class="field"><span class="label">Convocati</span><b id="cCount" style="font-size:20px"></b></div>
+    </div>
+    <div id="cList"></div>
+    <label class="field"><span class="label">Note (facoltative)</span><input type="text" id="cNote" maxlength="140" autocomplete="off" placeholder="es. Portare borraccia e parastinchi. Maglia bianca."></label>
+    <div class="hint warn" id="convErr" hidden></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="convCancel">Annulla</button>
+      <button type="button" class="btn btn-ghost" id="convSave">Salva</button>
+      <button type="submit" class="btn btn-primary">Salva e condividi</button>
+    </div>
+  </form>
+</div>
 <div class="sheet-bg" id="nextBg" hidden>
   <form class="sheet" id="nextForm" novalidate>
     <h3>Prossima partita</h3>

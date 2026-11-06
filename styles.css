@@ -411,3 +411,13 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .live-card .live-score .tm{font-size:16px;overflow-wrap:normal;word-break:normal;hyphens:none;text-transform:uppercase;letter-spacing:.02em}
 .live-card .live-score .sc{font-size:56px}
 .live-card .live-score .tm{font-size:13px}.live-card .live-score .sc{font-size:50px}
+
+/* convocazioni */
+.cv-grp{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.conv{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:8px 10px;margin:6px 0 2px}
+.conv summary{cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;list-style:none}
+.conv summary::-webkit-details-marker{display:none}.conv summary span{color:var(--muted);font-size:13px}
+.conv summary:after{content:"›";font-size:20px;color:var(--muted);transition:transform .15s}.conv[open] summary:after{transform:rotate(90deg)}
+.cv-g h5{margin:10px 0 2px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.cv-g p{margin:0;font-weight:600;line-height:1.4}
+.cv-note{margin:8px 0 6px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted)}
+.conv .btn{margin-top:8px}
