@@ -798,7 +798,7 @@ async function refresh(force){
     if(e.code==="offline"){failN++;if(failN>=2||navigator.onLine===false){const o=$("offline");o.textContent="Connessione assente o instabile"+(lastOk?" · dati aggiornati alle "+hm(new Date(lastOk)):"")+" · tocca per riprovare";o.hidden=false}}
   }
 }
-function schedulePoll(){clearTimeout(pollTimer);if(!SESSION)return;const ms=S.live?5000:90000;pollTimer=setTimeout(async()=>{if(document.visibilityState==="visible"||S.live)await refresh(false);schedulePoll()},ms)}
+function schedulePoll(){clearTimeout(pollTimer);if(!SESSION)return;const ms=S.live?5000:15000;pollTimer=setTimeout(async()=>{if(document.visibilityState==="visible"||S.live)await refresh(false);schedulePoll()},ms)}
 $("offline").addEventListener("click",()=>refresh(true));window.addEventListener("online",()=>{if(SESSION)refresh(true)});
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&SESSION){refresh(false).then(schedulePoll)}});
 
