@@ -50,12 +50,14 @@
     <button type="button" data-tab="live"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 6.3a8 8 0 010 11.4"/></svg><span>Diretta</span><i class="tdot" id="tabLiveDot" hidden></i></button>
     <button type="button" data-tab="partite"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/></svg><span>Partite</span></button>
     <button type="button" data-tab="rosa"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 3-6 6-6s6 2 6 6M16 5a3 3 0 010 6M18 14c2 .7 3 2.600 3 6"/></svg><span>Rosa</span></button>
+    <button type="button" data-tab="allenamento" id="tabAllen" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="M15 10l6-3v10l-6-3"/></svg><span>Allenam.</span><i class="tdot"></i></button>
     <button type="button" data-tab="utenti" id="tabUtenti" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3.500-6 7-6s7 2 7 6M19 4v4M17 6h4"/></svg><span>Utenti</span></button>
   </nav>
 
   <div class="sound-row" id="soundRow" data-pane="live"></div>
   <section class="upc-wrap" id="nextLive" data-pane="live" hidden></section>
   <section class="live-sec" id="liveSec" data-pane="live" aria-label="Diretta" hidden>
+    <div id="liveVideo" hidden></div>
     <div id="liveBox"></div>
   </section>
   <p class="empty-pane" id="liveEmpty" data-pane="live" hidden>Nessuna partita in diretta in questo momento. Quando inizia, la vedi qui e arriva un avviso a ogni gol.</p>
@@ -97,6 +99,14 @@
     <div class="section-head"><h2 id="hUsers">Utenti e ruoli</h2><button type="button" class="btn btn-primary btn-sm" id="uAdd">+ Nuovo utente</button></div>
     <p class="hint">Admin: può modificare tutto. Lettore: può solo consultare. Le modifiche valgono subito.</p>
     <div id="uList" class="ulist"><p class="status">Caricamento…</p></div>
+  </section>
+
+  <section class="section" data-pane="allenamento" id="trainSec" aria-labelledby="trainTitle" hidden>
+    <div class="live-top"><span class="live-badge"><i></i>DIRETTA</span><span>Allenamento</span></div>
+    <h2 id="trainTitle">Allenamento</h2>
+    <div id="trainVideo" hidden></div>
+    <p class="status" id="trainWait">Il video parte a breve: ricontrolla tra poco.</p>
+    <div class="live-foot" id="trainAdm" hidden></div>
   </section>
 
   <section class="section" data-pane="rosa" aria-labelledby="hRoster">
@@ -235,6 +245,20 @@
     </div>
   </form>
 </div>
+<div class="sheet-bg" id="ytBg" hidden>
+  <form class="sheet" id="ytForm" novalidate autocomplete="off">
+    <h3 id="ytH">Video della diretta</h3>
+    <label class="field" id="ytTitleF"><span class="label">Titolo</span><input type="text" id="ytTitle" maxlength="60" placeholder="es. Allenamento del giovedì"></label>
+    <label class="field"><span class="label">Link YouTube</span><input type="url" inputmode="url" id="ytUrl" autocapitalize="none" spellcheck="false" placeholder="https://youtube.com/live/..."></label>
+    <p class="hint">Sul video attiva "Consenti l'incorporamento" e scegli visibilità "Non in elenco".</p>
+    <div class="hint warn" id="ytErr" hidden></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="ytCancel">Annulla</button>
+      <button type="button" class="btn btn-ghost" id="ytRemove">Rimuovi video</button>
+      <button type="submit" class="btn btn-primary">Salva</button>
+    </div>
+  </form>
+</div>
 <div class="sheet-bg" id="convBg" hidden>
   <form class="sheet" id="convForm" novalidate>
     <h3>Convocazioni</h3>
@@ -266,6 +290,7 @@
       <label class="field"><span class="label">Competizione</span><input type="text" id="nComp" autocomplete="off" list="compList" placeholder="facoltativo"></label>
     </div>
     <label class="field"><span class="label">Indirizzo del campo (facoltativo)</span><input type="text" id="nAddr" autocomplete="off" placeholder="es. Via Roma 1, Velletri"></label>
+    <label class="field"><span class="label">Link diretta YouTube (facoltativo)</span><input type="url" inputmode="url" id="nYt" autocomplete="off" autocapitalize="none" placeholder="https://youtube.com/live/..."></label>
     <div class="hint" id="nHint">La diretta e le convocazioni sono indicate 45 minuti prima dell'inizio.</div>
     <div class="hint warn" id="nextErr" hidden></div>
     <div class="sheet-actions">

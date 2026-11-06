@@ -291,7 +291,8 @@ textarea{min-height:60px;resize:vertical}
 .wrap[data-active="live"] [data-pane]:not([data-pane="live"]),
 .wrap[data-active="partite"] [data-pane]:not([data-pane="partite"]),
 .wrap[data-active="rosa"] [data-pane]:not([data-pane="rosa"]),
-.wrap[data-active="utenti"] [data-pane]:not([data-pane="utenti"]){display:none!important}
+.wrap[data-active="utenti"] [data-pane]:not([data-pane="utenti"]),
+.wrap[data-active="allenamento"] [data-pane]:not([data-pane="allenamento"]){display:none!important}
 .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px;position:sticky;top:6px;z-index:20}
 .tabs button{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;padding:8px 4px;border-radius:12px;cursor:pointer;min-width:0}
 .tabs button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -434,3 +435,9 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .urow .badge{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);color:var(--muted)}
 .urow .badge.adm{background:var(--club);color:#fff}
 .urow .me{font-size:12px;color:var(--muted)}
+
+/* video */
+.yt{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000;margin:0 0 6px}
+.yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.yt-open{display:inline-block;font-size:13px;color:var(--muted);margin:0 0 10px}
+#liveVideo{margin-bottom:6px}

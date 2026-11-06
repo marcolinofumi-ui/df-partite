@@ -79,7 +79,7 @@ function render(){
   $("sStreak").textContent=streak;$("sAvg").textContent=avg.toLocaleString("it-IT",{maximumFractionDigits:1});
   $("sAvgGA").textContent=(list.length?ga/list.length:0).toLocaleString("it-IT",{maximumFractionDigits:1});$("sClean").textContent=list.filter(m=>(m.ga||0)===0).length;
   // diretta
-  renderLive();
+  renderLive();renderTrain();
   $("compList").innerHTML=[...new Set(["Campionato",...S.matches.map(m=>m.comp).filter(Boolean)])].map(c=>`<option value="${esc(c)}">`).join("");
   // momento della stagione
   const best=[...list].sort((a,b)=>(b.gf-b.ga)-(a.gf-a.ga))[0];
@@ -164,7 +164,7 @@ function render(){
     const teams=home?`<span class="us">${team}</span> – ${esc(m.opp)}`:`${esc(m.opp)} – <span class="us">${team}</span>`;
     const score=home?`${m.gf}–${m.ga}`:`${m.ga}–${m.gf}`;
     const goals=(m.scorers||[]).filter(s=>s.name).map(s=>`<span class="g ${isKid(s.name)?"me":""}">${BALL}${esc(s.name)}${s.goals>1?` ×${s.goals}`:""}</span>`).join("");
-    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
+    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(m.x&&ytId(m.x.yt)?`<a class="btn btn-ghost btn-sm" href="https://www.youtube.com/watch?v=${ytId(m.x.yt)}" target="_blank" rel="noopener">Rivedi la partita</a>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
     const act=share+(readOnly||confirmId===m.id?"":`<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="${m.id}">${I.edit}Modifica</button>`);
     const delRow=readOnly?"":(confirmId===m.id
       ?`<div class="del-row"><span class="confirm">Eliminare questa partita?</span><button type="button" class="btn btn-ghost btn-sm" data-act="nodel">No</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-id="${m.id}">Elimina</button></div>`
@@ -305,11 +305,50 @@ $("uList").addEventListener("click",async e=>{const b=e.target.closest("button")
     try{await api("userDel",{token:SESSION.token,name:n});await loadUsers()}catch(x){b.dataset.sure="";b.textContent="Elimina";{const p=document.createElement("p");p.className="hint warn";p.textContent=uMsg(x);$("uList").prepend(p);setTimeout(()=>p.remove(),5000)}}}});
 function syncUsersTab(){const t=$("tabUtenti");if(t)t.hidden=readOnly;if(readOnly&&activeTab==="utenti")setTab("home")}
 
+
+/* ---------- video YouTube + allenamento in diretta ---------- */
+function ytId(u){u=String(u||"").trim();if(!u)return"";if(/^[\w-]{11}$/.test(u))return u;
+  try{const x=new URL(/^https?:/i.test(u)?u:"https://"+u);const h=x.hostname.replace(/^(www|m)\./,"");let id="";
+    if(h==="youtu.be")id=x.pathname.slice(1,12);
+    else if(/(^|\.)youtube(-nocookie)?\.com$/.test(h)){id=x.searchParams.get("v")||"";if(!id){const p=x.pathname.split("/").filter(Boolean);if(["live","embed","shorts","v"].includes(p[0])&&p[1])id=p[1]}}
+    return /^[\w-]{11}$/.test(id.slice(0,11))&&id.length>=11?id.slice(0,11):""}catch(_){return""}}
+function setVideo(el,url){if(!el)return;const id=ytId(url);if(el.dataset.v===id)return;el.dataset.v=id;
+  el.innerHTML=id?`<div class="yt"><iframe src="https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0" title="Video in diretta" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><a class="yt-open" href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">Apri su YouTube</a>`:"";el.hidden=!id}
+function getTrain(){try{const t=JSON.parse(S.settings.training||"null");return t&&typeof t==="object"?t:null}catch(_){return null}}
+let ytMode=null,trainEnd=false;
+function renderTrain(){const t=getTrain();const tab=$("tabAllen");tab.hidden=!t;
+  if(!t&&activeTab==="allenamento")setTab("live");
+  if(!t){$("trainSec").hidden=true;setVideo($("trainVideo"),"");return}
+  $("trainSec").hidden=false;$("trainTitle").textContent=t.title||"Allenamento";setVideo($("trainVideo"),t.yt);
+  $("trainWait").hidden=!!ytId(t.yt);
+  $("trainAdm").hidden=readOnly;$("trainAdm").innerHTML=readOnly?"":(trainEnd?`<span class="confirm">Chiudere la diretta dell'allenamento?</span><span style="display:flex;gap:6px"><button type="button" class="btn btn-ghost btn-sm" data-tr="no">No</button><button type="button" class="btn btn-danger btn-sm" data-tr="endok">Termina</button></span>`:`<button type="button" class="btn btn-ghost btn-sm" data-tr="edit">Modifica titolo e link</button><button type="button" class="btn btn-ghost btn-sm" data-tr="end">Termina allenamento</button>`)}
+$("trainAdm").addEventListener("click",async e=>{const b=e.target.closest("[data-tr]");if(!b)return;const a=b.dataset.tr;
+  if(a==="edit"){openYt("train");return}
+  if(a==="end"){trainEnd=true;renderTrain();return}
+  if(a==="no"){trainEnd=false;renderTrain();return}
+  if(a==="endok"){trainEnd=false;await commit(st=>{st.settings.training=""});render()}});
+function openYt(mode){ytMode=mode;const t=getTrain();const tr=mode==="train";
+  $("ytH").textContent=tr?(t?"Allenamento in diretta":"Avvia allenamento in diretta"):"Video della diretta";
+  $("ytTitleF").hidden=!tr;$("ytTitle").value=tr?(t&&t.title||"Allenamento"):"";
+  $("ytUrl").value=tr?(t&&t.yt||""):(S.live&&S.live.yt||"");
+  $("ytRemove").hidden=tr||!(S.live&&S.live.yt);$("ytErr").hidden=true;
+  document.querySelector("#ytForm .btn-primary").textContent=tr&&!t?"Avvia":"Salva";
+  $("ytBg").hidden=false;setTimeout(()=>$("ytUrl").focus(),50)}
+$("ytCancel").onclick=()=>$("ytBg").hidden=true;
+$("ytBg").addEventListener("click",e=>{if(e.target===$("ytBg"))$("ytBg").hidden=true});
+async function ytSave(url,remove){const tr=ytMode==="train";const raw=(url||"").trim();
+  if(raw&&!ytId(raw)){$("ytErr").textContent="Non riconosco il link: incolla l'indirizzo del video o della diretta YouTube.";$("ytErr").hidden=false;return}
+  const title=$("ytTitle").value.trim()||"Allenamento";
+  const ok=await commit(st=>{if(tr){const old=(()=>{try{return JSON.parse(st.settings.training||"null")}catch(_){return null}})();st.settings.training=JSON.stringify({title,yt:raw,since:old&&old.since||new Date().toISOString()})}else if(st.live){st.live.yt=remove?"":raw}});
+  if(ok){$("ytBg").hidden=true;if(tr)setTab("allenamento")}else{$("ytErr").textContent="Non riesco a salvare.";$("ytErr").hidden=false}}
+$("ytForm").addEventListener("submit",e=>{e.preventDefault();ytSave($("ytUrl").value,false)});
+$("ytRemove").onclick=()=>ytSave("",true);
+
 /* ---------- diretta ---------- */
 const nowHM=()=>new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 const shortName=n=>{const p=n.split(" ");return p.length>1?p.slice(1).join(" "):n};
-const TABS=["home","live","partite","rosa","utenti"];let activeTab=TABS.includes(LS.get("tab"))?LS.get("tab"):"home";
-function setTab(t,noScroll){if(!TABS.includes(t)||(t==="utenti"&&readOnly))t="home";activeTab=t;LS.set("tab",t);$("app").dataset.active=t;
+const TABS=["home","live","partite","rosa","utenti","allenamento"];let activeTab=TABS.includes(LS.get("tab"))?LS.get("tab"):"home";
+function setTab(t,noScroll){if(!TABS.includes(t)||(t==="utenti"&&readOnly)||(t==="allenamento"&&!getTrain()))t="home";activeTab=t;LS.set("tab",t);$("app").dataset.active=t;
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===t?"page":"false"));
   try{history.replaceState(null,"","#"+t)}catch(_){}
   if(!noScroll)window.scrollTo({top:0,behavior:"instant"})}
@@ -318,9 +357,9 @@ let lastSc=null;
 function confetti(){try{if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;const h=document.createElement("div");h.className="confetti";const cols=["#f8ec1c","#6fd294","#f08a7d","#7fa6ff","#ffffff"];
   h.innerHTML=Array.from({length:42},(_,i)=>`<i style="left:${Math.random()*100}%;background:${cols[i%5]};animation-delay:${(Math.random()*.5).toFixed(2)}s;animation-duration:${(1.8+Math.random()*1.2).toFixed(2)}s;--dx:${Math.round(Math.random()*120-60)}px;--rot:${Math.round(Math.random()*720)}deg"></i>`).join("");
   document.body.appendChild(h);setTimeout(()=>h.remove(),3400)}catch(_){}}
-function renderLive(){renderNext();updateAlertBar();$("tabLiveDot").hidden=!S.live;
+function renderLive(){renderNext();updateAlertBar();$("tabLiveDot").hidden=!S.live;setVideo($("liveVideo"),S.live&&S.live.yt);
   const L=S.live,box=$("liveBox"),sec=$("liveSec");const team=S.settings.team||"DF Academy";
-  if(!L){lastSc=null;sec.hidden=readOnly;box.innerHTML=readOnly?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button></div>`;return}
+  if(!L){lastSc=null;sec.hidden=readOnly;box.innerHTML=readOnly?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button>${getTrain()?"":`<button type="button" class="btn btn-ghost btn-sm" data-live="train">● Allenamento in diretta</button>`}</div>`;return}
   sec.hidden=false;const home=L.where!=="trasferta";
   const left=home?team:L.opp,right=home?L.opp:team,ls=home?L.gf:L.ga,rs=home?L.ga:L.gf;
   const ev=[...(L.events||[])].reverse().map(e=>`<li class="${e.type}"><span class="t">${esc(e.t)}</span><span class="ev">${esc(e.text)}</span></li>`).join("");
@@ -339,7 +378,7 @@ function renderLive(){renderNext();updateAlertBar();$("tabLiveDot").hidden=!S.li
     <div class="live-score"><span class="tm ${home?"us":""}">${esc(left)}</span><span class="sc${lastSc!==null&&lastSc!==ls+"-"+rs?" bump":""}">${ls}–${rs}</span><span class="tm ${home?"":"us"}">${esc(right)}</span></div>
     ${ctrl}
     ${ev?`<ul class="feed">${ev}</ul>`:`<div class="status">Ancora nessun aggiornamento.</div>`}
-    <div class="live-foot">${foot}<button type="button" class="btn btn-ghost btn-sm share-btn" data-live="share">Condividi</button></div>
+    <div class="live-foot">${foot}<button type="button" class="btn btn-ghost btn-sm share-btn" data-live="share">Condividi</button>${readOnly?"":`<button type="button" class="btn btn-ghost btn-sm" data-live="yt">${L.yt?"Link video":"+ Video"}</button>`}</div>
   </div>`;lastSc=scNow;
   const nf=$("liveNote");if(nf)nf.onsubmit=async e=>{e.preventDefault();const t=$("liveNoteTxt").value.trim();if(!t)return;await liveEvent({type:"nota",text:t})};
 }
@@ -349,6 +388,8 @@ function liveShare(){const L=S.live;const team=S.settings.team||"DF Academy";con
   return `🔴 IN DIRETTA · ${line}`+(last?`\n${last.t} ${last.text}`:"")}
 $("liveBox").addEventListener("click",async e=>{const b=e.target.closest("[data-live]");if(!b)return;const a=b.dataset.live;const L=S.live;
   if(a==="open"){openLiveForm();return}
+  if(a==="yt"){openYt("live");return}
+  if(a==="train"){openYt("train");return}
   if(a==="share"){await shareOut(liveShare(),b);return}
   if(a==="gol"){livePick=true;renderLive();return}
   if(a==="pickclose"){livePick=false;renderLive();return}
@@ -363,7 +404,7 @@ $("liveBox").addEventListener("click",async e=>{const b=e.target.closest("[data-
       if(src){let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=[];if(!l.some(y=>y.id===src.id)){l.push(src);st.settings.nextList=JSON.stringify(l)}}});return}
   if(a==="endok"){liveConfirm=null;await commit(st=>{const x=st.live;if(!x)return;const tally={};(x.events||[]).filter(ev=>ev.type==="gol"&&ev.scorer).forEach(ev=>{tally[ev.scorer]=(tally[ev.scorer]||0)+1});
     const n=Math.max(0,...st.matches.map(m=>m.n||0))+1;
-    st.matches.push({id:newId("m"),n,date:x.date,opp:x.opp,comp:x.comp,where:x.where,gf:x.gf,ga:x.ga,scorers:Object.entries(tally).map(([name,goals])=>({name,goals})),presenti:x.presenti||[],note:"",...(x.from&&x.from.poster?{x:{poster:x.from.poster}}:{})});st.live=null});return}
+    st.matches.push({id:newId("m"),n,date:x.date,opp:x.opp,comp:x.comp,where:x.where,gf:x.gf,ga:x.ga,scorers:Object.entries(tally).map(([name,goals])=>({name,goals})),presenti:x.presenti||[],note:"",...((x.from&&x.from.poster)||x.yt?{x:Object.assign({},x.from&&x.from.poster?{poster:x.from.poster}:{},x.yt?{yt:x.yt}:{})}:{})});st.live=null});return}
 });
 
 
@@ -437,7 +478,7 @@ function getNexts(){return readNexts().map(n=>{if(!n.opp||!n.date)return null;co
   return Object.assign({},n,{start:t,liveFrom:new Date(t.getTime()-45*6e4)})}).filter(Boolean).sort((x,y)=>x.start-y.start)}
 const getNext=()=>getNexts()[0]||null;
 function saveNexts(list){return commit(st=>{["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(k=>{delete st.settings[k]});
-  st.settings.nextList=JSON.stringify(list.map(x=>({id:x.id,opp:x.opp,date:x.date,time:x.time,where:x.where,comp:x.comp||"",addr:x.addr||"",poster:x.poster||null,conv:x.conv||null})))})}
+  st.settings.nextList=JSON.stringify(list.map(x=>({id:x.id,opp:x.opp,date:x.date,time:x.time,where:x.where,comp:x.comp||"",addr:x.addr||"",poster:x.poster||null,conv:x.conv||null,yt:x.yt||""})))})}
 const hm=d=>d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 function nextCountdown(n){const now=Date.now(),st=n.start.getTime(),lf=n.liveFrom.getTime();
   if(now>=st)return"La partita è iniziata.";
@@ -498,12 +539,12 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-next]");if
   if(a==="edit"){openNextForm(readNexts().find(x=>x.id===id));return}
   if(a==="add"){openNextForm(null);return}
   if(a==="del"){saveNexts(readNexts().filter(x=>x.id!==id));return}});
-function openNextForm(n){n=n||{};editingNext=n.id||null;$("nOpp").value=n.opp||"";$("nDate").value=n.date||"";$("nTime").value=n.time||"";$("nWhere").value=n.where||"trasferta";$("nComp").value=n.comp||"";$("nAddr").value=n.addr||"";$("nextErr").hidden=true;$("nextBg").hidden=false;setTimeout(()=>$("nOpp").focus(),50)}
+function openNextForm(n){n=n||{};editingNext=n.id||null;$("nOpp").value=n.opp||"";$("nDate").value=n.date||"";$("nTime").value=n.time||"";$("nWhere").value=n.where||"trasferta";$("nComp").value=n.comp||"";$("nAddr").value=n.addr||"";$("nYt").value=n.yt||"";$("nextErr").hidden=true;$("nextBg").hidden=false;setTimeout(()=>$("nOpp").focus(),50)}
 $("nextCancel").onclick=()=>$("nextBg").hidden=true;
 $("nextBg").addEventListener("click",e=>{if(e.target===$("nextBg"))$("nextBg").hidden=true});
 $("nextForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("nOpp").value.trim(),date=$("nDate").value,time=$("nTime").value;
   if(!opp||!date||!time){$("nextErr").textContent="Inserisci avversario, data e ora.";$("nextErr").hidden=false;return}
-  const item={id:editingNext||newId("n"),opp,date,time,where:$("nWhere").value,comp:$("nComp").value.trim(),addr:$("nAddr").value.trim()};
+  const item={id:editingNext||newId("n"),opp,date,time,where:$("nWhere").value,comp:$("nComp").value.trim(),addr:$("nAddr").value.trim(),yt:$("nYt").value.trim()};
   const list=readNexts();const i=list.findIndex(x=>x.id===item.id);if(i>=0){item.poster=list[i].poster||null;item.conv=list[i].conv||null;list[i]=item}else list.push(item);
   const ok=await saveNexts(list);
   if(ok)$("nextBg").hidden=true;else{$("nextErr").textContent=$("status").textContent||"Non riesco a salvare.";$("nextErr").hidden=false}});
@@ -516,7 +557,7 @@ $("liveBg").addEventListener("click",e=>{if(e.target===$("liveBg"))$("liveBg").h
 $("liveForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("lOpp").value.trim();if(!opp){$("liveErr").textContent="Inserisci l'avversario.";$("liveErr").hidden=false;return}
   const t=new Date();const date=new Date(t.getTime()-t.getTimezoneOffset()*6e4).toISOString().slice(0,10);
   const live={opp,where:$("lWhere").value,comp:$("lComp").value.trim()||"Campionato",date,gf:0,ga:0,events:[],updated:nowHM(),presenti:[...document.querySelectorAll("#lPres input:checked")].map(i=>i.value)};
-  const fromId=liveFromNext;const ok=await commit(st=>{st.live=live;let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const src=fromId?l.find(x=>x.id===fromId):null;if(src&&st.live)st.live.from=src;const k=l.filter(x=>x.id!==fromId&&!(!fromId&&String(x.opp).toLowerCase()===opp.toLowerCase()));if(k.length!==l.length||!st.settings.nextList){["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(q=>{delete st.settings[q]});st.settings.nextList=JSON.stringify(k)}});liveFromNext=null;if(ok)$("liveBg").hidden=true;else{$("liveErr").textContent=$("status").textContent||"Non riesco ad avviare la diretta.";$("liveErr").hidden=false}});
+  const fromId=liveFromNext;const ok=await commit(st=>{st.live=live;let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const src=fromId?l.find(x=>x.id===fromId):null;if(src&&st.live){st.live.from=src;if(src.yt)st.live.yt=src.yt}const k=l.filter(x=>x.id!==fromId&&!(!fromId&&String(x.opp).toLowerCase()===opp.toLowerCase()));if(k.length!==l.length||!st.settings.nextList){["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(q=>{delete st.settings[q]});st.settings.nextList=JSON.stringify(k)}});liveFromNext=null;if(ok)$("liveBg").hidden=true;else{$("liveErr").textContent=$("status").textContent||"Non riesco ad avviare la diretta.";$("liveErr").hidden=false}});
 
 /* ---------- condividi ---------- */
 async function shareOut(txt,btn){
