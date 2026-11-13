@@ -502,3 +502,5 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .com-form input{height:48px;border:1px solid var(--line);border-radius:24px;padding:0 18px;font:inherit;background:var(--bg);color:var(--fg);min-width:0}
 .com-row{display:flex;gap:8px}.com-row input{flex:1}
 .com-as{font-size:13px;color:var(--muted)}
+.com-n{display:inline-block;margin-left:8px;min-width:22px;padding:0 8px;border-radius:11px;background:var(--surface-2);color:var(--fg);font-size:12px;font-weight:800;line-height:22px;text-align:center}
+.com-n.new{background:var(--accent);color:var(--accent-fg)}

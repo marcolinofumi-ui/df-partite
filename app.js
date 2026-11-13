@@ -164,7 +164,7 @@ function render(){
     const teams=home?`<span class="us">${team}</span> – ${esc(m.opp)}`:`${esc(m.opp)} – <span class="us">${team}</span>`;
     const score=home?`${m.gf}–${m.ga}`:`${m.ga}–${m.gf}`;
     const goals=(m.scorers||[]).filter(s=>s.name).map(s=>`<span class="g ${isKid(s.name)?"me":""}">${BALL}${esc(s.name)}${s.goals>1?` ×${s.goals}`:""}</span>`).join("");
-    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(videosFor(m).length?`<button type="button" class="btn btn-ghost btn-sm" data-mvid="${m.id}">Spezzoni</button>`:"")+`<button type="button" class="btn btn-ghost btn-sm" data-mcom="${m.id}">Messaggi${comCount(m.id)?" ("+comCount(m.id)+")":""}</button>`+(m.x&&ytId(m.x.yt)?`<a class="btn btn-ghost btn-sm" href="https://www.youtube.com/watch?v=${ytId(m.x.yt)}" target="_blank" rel="noopener">Rivedi la partita</a>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
+    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(videosFor(m).length?`<button type="button" class="btn btn-ghost btn-sm" data-mvid="${m.id}">Spezzoni</button>`:"")+`<button type="button" class="btn btn-ghost btn-sm" data-mcom="${m.id}">Messaggi${comBadge(m.id)}</button>`+(m.x&&ytId(m.x.yt)?`<a class="btn btn-ghost btn-sm" href="https://www.youtube.com/watch?v=${ytId(m.x.yt)}" target="_blank" rel="noopener">Rivedi la partita</a>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
     const act=share+(readOnly||confirmId===m.id?"":`<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="${m.id}">${I.edit}Modifica</button>`);
     const delRow=readOnly?"":(confirmId===m.id
       ?`<div class="del-row"><span class="confirm">Eliminare questa partita?</span><button type="button" class="btn btn-ghost btn-sm" data-act="nodel">No</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-id="${m.id}">Elimina</button></div>`
@@ -381,6 +381,10 @@ const COMERR=Object.assign({},{troppi_messaggi:"Stai scrivendo troppo in fretta,
 const REACTS=[["a","Bravi ragazzi"],["b","Che gol"],["c","Grazie mister"]];
 function devId(){let d=LS.get("dev");if(!d){d=Math.random().toString(36).slice(2,10)+Date.now().toString(36);LS.set("dev",d)}return d}
 function comCount(id){return COM.items.filter(x=>x.m===id&&!x.h).length}
+function comSeen(id){const s=LS.get("comSeen")||{};return s[id]||0}
+function comMarkSeen(id){const s=LS.get("comSeen")||{};s[id]=Date.now();LS.set("comSeen",s)}
+function comBadge(id){if(!COM.loaded)return"";const n=comCount(id),nu=COM.items.filter(x=>x.m===id&&!x.h&&x.w>comSeen(id)).length;
+  return `<span class="com-n${nu?" new":""}" title="${nu?nu+" nuovi":"Nessun messaggio nuovo"}">${n}${nu?" · "+nu+" nuov"+(nu===1?"o":"i"):""}</span>`}
 function comWhen(t){const s=Math.max(0,(Date.now()-t)/1000);if(s<60)return"adesso";if(s<3600)return Math.floor(s/60)+" min fa";if(s<86400)return Math.floor(s/3600)+" h fa";return new Date(t).toLocaleDateString("it-IT",{day:"numeric",month:"short"})}
 async function loadComments(){if(!SESSION||COM.loading)return;COM.loading=true;
   try{const j=await api("commentList",{token:SESSION.token,dev:devId()});Object.assign(COM,{items:j.items||[],likes:j.likes||{},reacts:j.reacts||{},mine:j.mine||{},mineLike:j.mineLike||{},admin:!!j.admin,loaded:true})}
@@ -393,10 +397,10 @@ function renderCom(){const id=COM.cur,m=S.matches.find(x=>x.id===id);if(!m)retur
   const l=COM.items.filter(x=>x.m===id).sort((a,b)=>a.w-b.w);
   $("comList").innerHTML=l.length?l.map(x=>{const ini=esc(String(x.n||"?").slice(0,2).toUpperCase());
     return `<div class="com-msg${x.h?" hid":""}"><div class="com-av${x.s?" staff":""}">${ini}</div><div class="com-body"><div class="com-meta"><b>${esc(String(x.n||"Genitore").toUpperCase())}</b>${x.s?'<span class="com-badge">Staff</span>':""}<small>${comWhen(x.w)}${x.h?" · nascosto":""}</small></div><p class="com-txt">${esc(x.t)}</p><div class="com-act"><button type="button" data-like="${esc(x.id)}" aria-pressed="${!!COM.mineLike[x.id]}">Mi piace · ${COM.likes[x.id]||0}</button><button type="button" data-reply="${esc(String(x.n||"").toUpperCase())}">Rispondi</button>${COM.admin?`<button type="button" data-hide="${esc(x.id)}">${x.h?"Mostra":"Nascondi"}</button>`:""}</div></div></div>`}).join(""):'<p class="status">Ancora nessun messaggio. Scrivi tu il primo!</p>';
-  $("comList").scrollTop=$("comList").scrollHeight}
-function openCom(id){COM.cur=id;$("comAs").textContent="Scrivi come "+String(SESSION&&SESSION.user||"").toUpperCase();$("comText").value="";$("comErr").hidden=true;$("comBg").hidden=false;renderCom();loadComments()}
-$("comClose").onclick=()=>{$("comBg").hidden=true;COM.cur=null};
-$("comBg").addEventListener("click",e=>{if(e.target===$("comBg")){$("comBg").hidden=true;COM.cur=null}});
+  comMarkSeen(id);$("comList").scrollTop=$("comList").scrollHeight}
+function openCom(id){COM.cur=id;comMarkSeen(id);$("comAs").textContent="Scrivi come "+String(SESSION&&SESSION.user||"").toUpperCase();$("comText").value="";$("comErr").hidden=true;$("comBg").hidden=false;renderCom();loadComments()}
+$("comClose").onclick=()=>{$("comBg").hidden=true;COM.cur=null;render()};
+$("comBg").addEventListener("click",e=>{if(e.target===$("comBg")){$("comBg").hidden=true;COM.cur=null;render()}});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-mcom]");if(b)openCom(b.dataset.mcom)});
 function comFail(e){$("comErr").textContent=COMERR[e&&e.code]||errMsg(e);$("comErr").hidden=false}
 $("comForm").addEventListener("submit",async e=>{e.preventDefault();const text=$("comText").value.trim();if(!text||!COM.cur)return;
