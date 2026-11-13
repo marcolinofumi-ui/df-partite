@@ -18,7 +18,7 @@ function normState(st){st=st||{};return{matches:st.matches||[],players:st.player
   settings:Object.assign({kid:"",team:"DF Academy",season:"Annata 2018 · Stagione 2026/27",coach:"",coachAlias:""},st.settings||{})}}
 
 /* ---------- comunicazione con Google Sheets ---------- */
-const READ_ACTIONS=new Set(["version","get","photoGet"]);
+const READ_ACTIONS=new Set(["version","get","photoGet","commentList"]);
 async function api(action,data){
   if(!API)throw{code:"config"};
   const body=JSON.stringify(Object.assign({action},data||{}));const tries=READ_ACTIONS.has(action)?3:1;let r;
@@ -79,7 +79,7 @@ function render(){
   $("sStreak").textContent=streak;$("sAvg").textContent=avg.toLocaleString("it-IT",{maximumFractionDigits:1});
   $("sAvgGA").textContent=(list.length?ga/list.length:0).toLocaleString("it-IT",{maximumFractionDigits:1});$("sClean").textContent=list.filter(m=>(m.ga||0)===0).length;
   // diretta
-  renderLive();renderTrain();renderVideos();
+  renderLive();renderTrain();renderVideos();if(SESSION&&!COM.loaded&&!COM.loading)loadComments();
   $("compList").innerHTML=[...new Set(["Campionato",...S.matches.map(m=>m.comp).filter(Boolean)])].map(c=>`<option value="${esc(c)}">`).join("");
   // momento della stagione
   const best=[...list].sort((a,b)=>(b.gf-b.ga)-(a.gf-a.ga))[0];
@@ -164,7 +164,7 @@ function render(){
     const teams=home?`<span class="us">${team}</span> – ${esc(m.opp)}`:`${esc(m.opp)} – <span class="us">${team}</span>`;
     const score=home?`${m.gf}–${m.ga}`:`${m.ga}–${m.gf}`;
     const goals=(m.scorers||[]).filter(s=>s.name).map(s=>`<span class="g ${isKid(s.name)?"me":""}">${BALL}${esc(s.name)}${s.goals>1?` ×${s.goals}`:""}</span>`).join("");
-    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(videosFor(m).length?`<button type="button" class="btn btn-ghost btn-sm" data-mvid="${m.id}">Spezzoni</button>`:"")+(m.x&&ytId(m.x.yt)?`<a class="btn btn-ghost btn-sm" href="https://www.youtube.com/watch?v=${ytId(m.x.yt)}" target="_blank" rel="noopener">Rivedi la partita</a>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
+    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(videosFor(m).length?`<button type="button" class="btn btn-ghost btn-sm" data-mvid="${m.id}">Spezzoni</button>`:"")+`<button type="button" class="btn btn-ghost btn-sm" data-mcom="${m.id}">Messaggi${comCount(m.id)?" ("+comCount(m.id)+")":""}</button>`+(m.x&&ytId(m.x.yt)?`<a class="btn btn-ghost btn-sm" href="https://www.youtube.com/watch?v=${ytId(m.x.yt)}" target="_blank" rel="noopener">Rivedi la partita</a>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
     const act=share+(readOnly||confirmId===m.id?"":`<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="${m.id}">${I.edit}Modifica</button>`);
     const delRow=readOnly?"":(confirmId===m.id
       ?`<div class="del-row"><span class="confirm">Eliminare questa partita?</span><button type="button" class="btn btn-ghost btn-sm" data-act="nodel">No</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-id="${m.id}">Elimina</button></div>`
@@ -373,6 +373,48 @@ $("vidAddForm").addEventListener("submit",async e=>{e.preventDefault();const id=
   if(ok){const wantPush=$("vaPush").checked;$("vidAddBg").hidden=true;render();
     if(wantPush)api("notify",{token:SESSION.token,title:"🎥 Nuovo spezzone",body:vidTitle(name)+". Apri l'app, scheda Partite, per guardarlo."}).then(()=>alert("Video salvato e avviso inviato ✓"),e=>alert("Video salvato, ma l'avviso non è stato inviato: "+(PUSHERR[e&&e.code]||errMsg(e))))}else{$("vaErr").textContent="Non riesco a salvare.";$("vaErr").hidden=false}});
 
+
+
+/* ---------- messaggi dei genitori (scheda "Commenti" del foglio) ---------- */
+const COM={loaded:false,loading:false,items:[],likes:{},reacts:{},mine:{},mineLike:{},admin:false,cur:null};
+const COMERR=Object.assign({},{troppi_messaggi:"Stai scrivendo troppo in fretta, riprova tra un minuto.",messaggio_vuoto:"Scrivi un messaggio.",azione_sconosciuta:"Lo script del foglio non è ancora aggiornato per i messaggi."});
+const REACTS=[["a","Bravi ragazzi"],["b","Che gol"],["c","Grazie mister"]];
+function devId(){let d=LS.get("dev");if(!d){d=Math.random().toString(36).slice(2,10)+Date.now().toString(36);LS.set("dev",d)}return d}
+function comCount(id){return COM.items.filter(x=>x.m===id&&!x.h).length}
+function comWhen(t){const s=Math.max(0,(Date.now()-t)/1000);if(s<60)return"adesso";if(s<3600)return Math.floor(s/60)+" min fa";if(s<86400)return Math.floor(s/3600)+" h fa";return new Date(t).toLocaleDateString("it-IT",{day:"numeric",month:"short"})}
+async function loadComments(){if(!SESSION||COM.loading)return;COM.loading=true;
+  try{const j=await api("commentList",{token:SESSION.token,dev:devId()});Object.assign(COM,{items:j.items||[],likes:j.likes||{},reacts:j.reacts||{},mine:j.mine||{},mineLike:j.mineLike||{},admin:!!j.admin,loaded:true})}
+  catch(e){COM.loaded=true;if(["sessione_scaduta","sessione_non_valida","accesso_richiesto"].includes(e&&e.code)){COM.loading=false;logout(errMsg(e));return}}
+  COM.loading=false;render();if(COM.cur&&!$("comBg").hidden)renderCom()}
+function renderCom(){const id=COM.cur,m=S.matches.find(x=>x.id===id);if(!m)return;
+  $("comSub").textContent=`${S.settings.team||"DF Academy"} · ${m.opp||""}`;
+  const rc=COM.reacts[id]||{},mine=COM.mine[id]||[];
+  $("comReacts").innerHTML=REACTS.map(([k,l])=>`<button type="button" class="com-chip" data-react="${k}" aria-pressed="${mine.includes(k)}">${l}<b>${rc[k]||0}</b></button>`).join("");
+  const l=COM.items.filter(x=>x.m===id).sort((a,b)=>a.w-b.w);
+  $("comList").innerHTML=l.length?l.map(x=>{const ini=esc((x.n||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase());
+    return `<div class="com-msg${x.h?" hid":""}"><div class="com-av${x.s?" staff":""}">${ini}</div><div class="com-body"><div class="com-meta"><b>${esc(x.n||"Genitore")}</b>${x.s?'<span class="com-badge">Staff</span>':""}<small>${comWhen(x.w)}${x.h?" · nascosto":""}</small></div><p class="com-txt">${esc(x.t)}</p><div class="com-act"><button type="button" data-like="${esc(x.id)}" aria-pressed="${!!COM.mineLike[x.id]}">Mi piace · ${COM.likes[x.id]||0}</button><button type="button" data-reply="${esc(x.n||"")}">Rispondi</button>${COM.admin?`<button type="button" data-hide="${esc(x.id)}">${x.h?"Mostra":"Nascondi"}</button>`:""}</div></div></div>`}).join(""):'<p class="status">Ancora nessun messaggio. Scrivi tu il primo!</p>';
+  $("comList").scrollTop=$("comList").scrollHeight}
+function openCom(id){COM.cur=id;$("comName").value=LS.get("comName")||"";$("comText").value="";$("comErr").hidden=true;$("comBg").hidden=false;renderCom();loadComments()}
+$("comClose").onclick=()=>{$("comBg").hidden=true;COM.cur=null};
+$("comBg").addEventListener("click",e=>{if(e.target===$("comBg")){$("comBg").hidden=true;COM.cur=null}});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-mcom]");if(b)openCom(b.dataset.mcom)});
+function comFail(e){$("comErr").textContent=COMERR[e&&e.code]||errMsg(e);$("comErr").hidden=false}
+$("comForm").addEventListener("submit",async e=>{e.preventDefault();const text=$("comText").value.trim(),name=$("comName").value.trim();if(!text||!COM.cur)return;
+  LS.set("comName",name);const btn=$("comSend");btn.disabled=true;$("comErr").hidden=true;
+  try{await api("commentAdd",{token:SESSION.token,match:COM.cur,name,text,dev:devId()});$("comText").value="";COM.loaded=false;await loadComments()}
+  catch(er){comFail(er)}btn.disabled=false});
+$("comBg").addEventListener("click",async e=>{if(!COM.cur)return;
+  const r=e.target.closest("[data-react]"),l=e.target.closest("[data-like]"),h=e.target.closest("[data-hide]"),p=e.target.closest("[data-reply]");
+  if(p){const n=p.dataset.reply;$("comText").value=(n?"@"+n+" ":"")+$("comText").value.replace(/^@\S+(\s\S+)?\s/,"");$("comText").focus();return}
+  try{
+    if(r){const k=r.dataset.react,on=(COM.mine[COM.cur]||[]).includes(k);
+      COM.mine[COM.cur]=on?(COM.mine[COM.cur]||[]).filter(x=>x!==k):[...(COM.mine[COM.cur]||[]),k];
+      COM.reacts[COM.cur]=Object.assign({},COM.reacts[COM.cur]);COM.reacts[COM.cur][k]=Math.max(0,(COM.reacts[COM.cur][k]||0)+(on?-1:1));renderCom();
+      await api("commentToggle",{token:SESSION.token,kind:"r",match:COM.cur,target:k,dev:devId()})}
+    else if(l){const id=l.dataset.like,on=!!COM.mineLike[id];COM.mineLike[id]=on?0:1;COM.likes[id]=Math.max(0,(COM.likes[id]||0)+(on?-1:1));renderCom();
+      await api("commentToggle",{token:SESSION.token,kind:"l",match:COM.cur,target:id,dev:devId()})}
+    else if(h){await api("commentHide",{token:SESSION.token,id:h.dataset.hide});COM.loaded=false;await loadComments()}
+  }catch(er){comFail(er);COM.loaded=false;loadComments()}});
 
 /* ---------- avvisi push (OneSignal), facoltativi ---------- */
 const PUSH_ID=(window.DF_CONFIG&&DF_CONFIG.PUSH_APP_ID)||"";

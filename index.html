@@ -283,6 +283,18 @@
     <div class="sheet-actions"><button type="button" class="btn btn-ghost" id="vaCancel">Annulla</button><button type="submit" class="btn btn-primary">Aggiungi</button></div>
   </form>
 </div>
+<div class="sheet-bg" id="comBg" hidden>
+  <div class="sheet com-sheet" role="dialog" aria-labelledby="comT">
+    <div class="com-head"><div><h3 id="comT">Messaggi</h3><small id="comSub"></small></div><button type="button" class="icon-btn" id="comClose" aria-label="Chiudi i messaggi">✕</button></div>
+    <div class="com-reacts" id="comReacts"></div>
+    <div class="com-list" id="comList"></div>
+    <form class="com-form" id="comForm" autocomplete="off">
+      <input type="text" id="comName" maxlength="30" placeholder="Il tuo nome (es. Mamma di Matteo)" aria-label="Il tuo nome">
+      <div class="com-row"><input type="text" id="comText" maxlength="280" placeholder="Scrivi un messaggio…" aria-label="Messaggio"><button type="submit" class="btn btn-primary" id="comSend">Invia</button></div>
+      <div class="hint warn" id="comErr" hidden></div>
+    </form>
+  </div>
+</div>
 <div class="sheet-bg" id="pushAskBg" hidden>
   <div class="sheet" role="dialog" aria-labelledby="pushAskH">
     <h3 id="pushAskH">🔴 Diretta in corso</h3>
