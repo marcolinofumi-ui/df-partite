@@ -391,17 +391,17 @@ function renderCom(){const id=COM.cur,m=S.matches.find(x=>x.id===id);if(!m)retur
   const rc=COM.reacts[id]||{},mine=COM.mine[id]||[];
   $("comReacts").innerHTML=REACTS.map(([k,l])=>`<button type="button" class="com-chip" data-react="${k}" aria-pressed="${mine.includes(k)}">${l}<b>${rc[k]||0}</b></button>`).join("");
   const l=COM.items.filter(x=>x.m===id).sort((a,b)=>a.w-b.w);
-  $("comList").innerHTML=l.length?l.map(x=>{const ini=esc((x.n||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase());
-    return `<div class="com-msg${x.h?" hid":""}"><div class="com-av${x.s?" staff":""}">${ini}</div><div class="com-body"><div class="com-meta"><b>${esc(x.n||"Genitore")}</b>${x.s?'<span class="com-badge">Staff</span>':""}<small>${comWhen(x.w)}${x.h?" · nascosto":""}</small></div><p class="com-txt">${esc(x.t)}</p><div class="com-act"><button type="button" data-like="${esc(x.id)}" aria-pressed="${!!COM.mineLike[x.id]}">Mi piace · ${COM.likes[x.id]||0}</button><button type="button" data-reply="${esc(x.n||"")}">Rispondi</button>${COM.admin?`<button type="button" data-hide="${esc(x.id)}">${x.h?"Mostra":"Nascondi"}</button>`:""}</div></div></div>`}).join(""):'<p class="status">Ancora nessun messaggio. Scrivi tu il primo!</p>';
+  $("comList").innerHTML=l.length?l.map(x=>{const ini=esc(String(x.n||"?").slice(0,2).toUpperCase());
+    return `<div class="com-msg${x.h?" hid":""}"><div class="com-av${x.s?" staff":""}">${ini}</div><div class="com-body"><div class="com-meta"><b>${esc(String(x.n||"Genitore").toUpperCase())}</b>${x.s?'<span class="com-badge">Staff</span>':""}<small>${comWhen(x.w)}${x.h?" · nascosto":""}</small></div><p class="com-txt">${esc(x.t)}</p><div class="com-act"><button type="button" data-like="${esc(x.id)}" aria-pressed="${!!COM.mineLike[x.id]}">Mi piace · ${COM.likes[x.id]||0}</button><button type="button" data-reply="${esc(String(x.n||"").toUpperCase())}">Rispondi</button>${COM.admin?`<button type="button" data-hide="${esc(x.id)}">${x.h?"Mostra":"Nascondi"}</button>`:""}</div></div></div>`}).join(""):'<p class="status">Ancora nessun messaggio. Scrivi tu il primo!</p>';
   $("comList").scrollTop=$("comList").scrollHeight}
-function openCom(id){COM.cur=id;$("comName").value=LS.get("comName")||"";$("comText").value="";$("comErr").hidden=true;$("comBg").hidden=false;renderCom();loadComments()}
+function openCom(id){COM.cur=id;$("comAs").textContent="Scrivi come "+String(SESSION&&SESSION.user||"").toUpperCase();$("comText").value="";$("comErr").hidden=true;$("comBg").hidden=false;renderCom();loadComments()}
 $("comClose").onclick=()=>{$("comBg").hidden=true;COM.cur=null};
 $("comBg").addEventListener("click",e=>{if(e.target===$("comBg")){$("comBg").hidden=true;COM.cur=null}});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-mcom]");if(b)openCom(b.dataset.mcom)});
 function comFail(e){$("comErr").textContent=COMERR[e&&e.code]||errMsg(e);$("comErr").hidden=false}
-$("comForm").addEventListener("submit",async e=>{e.preventDefault();const text=$("comText").value.trim(),name=$("comName").value.trim();if(!text||!COM.cur)return;
-  LS.set("comName",name);const btn=$("comSend");btn.disabled=true;$("comErr").hidden=true;
-  try{await api("commentAdd",{token:SESSION.token,match:COM.cur,name,text,dev:devId()});$("comText").value="";COM.loaded=false;await loadComments()}
+$("comForm").addEventListener("submit",async e=>{e.preventDefault();const text=$("comText").value.trim();if(!text||!COM.cur)return;
+  const btn=$("comSend");btn.disabled=true;$("comErr").hidden=true;
+  try{await api("commentAdd",{token:SESSION.token,match:COM.cur,text,dev:devId()});$("comText").value="";COM.loaded=false;await loadComments()}
   catch(er){comFail(er)}btn.disabled=false});
 $("comBg").addEventListener("click",async e=>{if(!COM.cur)return;
   const r=e.target.closest("[data-react]"),l=e.target.closest("[data-like]"),h=e.target.closest("[data-hide]"),p=e.target.closest("[data-reply]");

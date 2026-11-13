@@ -501,3 +501,4 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .com-form{display:flex;flex-direction:column;gap:8px}
 .com-form input{height:48px;border:1px solid var(--line);border-radius:24px;padding:0 18px;font:inherit;background:var(--bg);color:var(--fg);min-width:0}
 .com-row{display:flex;gap:8px}.com-row input{flex:1}
+.com-as{font-size:13px;color:var(--muted)}
