@@ -363,14 +363,15 @@ $("vidClose").onclick=()=>{$("vidBg").hidden=true;$("vidFrame").innerHTML=""};
 $("vidBg").addEventListener("click",e=>{if(e.target===$("vidBg")){$("vidBg").hidden=true;$("vidFrame").innerHTML=""}});
 $("vidList").addEventListener("click",async e=>{const p=e.target.closest("[data-vid]");if(p){openVideo(p.dataset.vid);return}
   const d=e.target.closest("[data-vdel]");if(d){const id=d.dataset.vdel;await commit(st=>{let l=[];try{l=JSON.parse(st.settings.videos||"null")}catch(_){}if(!Array.isArray(l))l=DEFAULT_VIDEOS;st.settings.videos=JSON.stringify(l.filter(v=>v.id!==id))});render()}});
-$("vidAdd").onclick=()=>{$("vaLink").value="";$("vaName").value="";$("vaErr").hidden=true;$("vidAddBg").hidden=false;setTimeout(()=>$("vaLink").focus(),50)};
+$("vidAdd").onclick=()=>{$("vaPush").checked=false;$("vaLink").value="";$("vaName").value="";$("vaErr").hidden=true;$("vidAddBg").hidden=false;setTimeout(()=>$("vaLink").focus(),50)};
 $("vaCancel").onclick=()=>$("vidAddBg").hidden=true;
 $("vidAddBg").addEventListener("click",e=>{if(e.target===$("vidAddBg"))$("vidAddBg").hidden=true});
 $("vidAddForm").addEventListener("submit",async e=>{e.preventDefault();const id=driveId($("vaLink").value),name=$("vaName").value.trim();
   if(!id){$("vaErr").textContent="Incolla il link del video di Google Drive.";$("vaErr").hidden=false;return}
   if(!name){$("vaErr").textContent="Scrivi un titolo, meglio se con la data (es. 14-11-2026 DF-Velletri).";$("vaErr").hidden=false;return}
   const ok=await commit(st=>{let l=[];try{l=JSON.parse(st.settings.videos||"null")}catch(_){}if(!Array.isArray(l))l=DEFAULT_VIDEOS;l=l.filter(v=>v.id!==id);l.push({id,name,date:vidDate(name)});st.settings.videos=JSON.stringify(l)});
-  if(ok){$("vidAddBg").hidden=true;render()}else{$("vaErr").textContent="Non riesco a salvare.";$("vaErr").hidden=false}});
+  if(ok){const wantPush=$("vaPush").checked;$("vidAddBg").hidden=true;render();
+    if(wantPush)api("notify",{token:SESSION.token,title:"🎥 Nuovo spezzone",body:vidTitle(name)+". Apri l'app, scheda Partite, per guardarlo."}).then(()=>alert("Video salvato e avviso inviato ✓"),e=>alert("Video salvato, ma l'avviso non è stato inviato: "+(PUSHERR[e&&e.code]||errMsg(e))))}else{$("vaErr").textContent="Non riesco a salvare.";$("vaErr").hidden=false}});
 
 
 /* ---------- avvisi push (OneSignal), facoltativi ---------- */
