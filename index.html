@@ -151,6 +151,7 @@
     <datalist id="oppList"></datalist>
     <div class="field"><span class="label">Dove</span>
       <div class="seg" id="fWhere"><button type="button" data-v="casa" aria-pressed="true">In casa</button><button type="button" data-v="trasferta" aria-pressed="false">In trasferta</button></div></div>
+    <label class="field"><span class="label">Formato di gioco</span><select id="fFmt"><option value="">Non indicato</option><option value="5">A 5</option><option value="7">A 7</option><option value="9">A 9</option><option value="11">A 11</option></select></label>
     <div class="scoreinput">
       <label class="field"><span class="label" id="lblUs">Gol DF</span><input type="number" id="fGF" min="0" max="99" inputmode="numeric" value="0"></label>
       <span class="sep">–</span>
@@ -226,6 +227,7 @@
     <label class="field"><span class="label">Avversario</span><input type="text" id="lOpp" autocomplete="off" list="oppList" placeholder="es. Grifone"></label>
     <div class="row">
       <label class="field"><span class="label">Dove</span><select id="lWhere"><option value="casa">In casa</option><option value="trasferta">In trasferta</option></select></label>
+      <label class="field"><span class="label">Formato</span><select id="lFmt"><option value="">Non indicato</option><option value="5">A 5</option><option value="7">A 7</option><option value="9">A 9</option><option value="11">A 11</option></select></label>
       <label class="field"><span class="label">Competizione</span><input type="text" id="lComp" autocomplete="off" list="compList" value="Campionato"></label>
     </div>
     <datalist id="compList"></datalist>
@@ -255,7 +257,7 @@
   <form class="sheet" id="ytForm" novalidate autocomplete="off">
     <h3 id="ytH">Video della diretta</h3>
     <label class="field" id="ytTitleF"><span class="label">Titolo</span><input type="text" id="ytTitle" maxlength="60" placeholder="es. Allenamento del giovedì"></label>
-    <label class="field"><span class="label">Link YouTube</span><input type="url" inputmode="url" id="ytUrl" autocapitalize="none" spellcheck="false" placeholder="https://youtube.com/live/..."></label>
+    <label class="field"><span class="label">Link YouTube o Twitch</span><input type="url" inputmode="url" id="ytUrl" autocapitalize="none" spellcheck="false" placeholder="https://youtube.com/live/..."></label>
     <p class="hint">Sul video attiva "Consenti l'incorporamento" e scegli visibilità "Non in elenco".</p>
     <div class="hint warn" id="ytErr" hidden></div>
     <div class="sheet-actions">
@@ -334,8 +336,9 @@
       <label class="field"><span class="label">Dove</span><select id="nWhere"><option value="casa">In casa</option><option value="trasferta">In trasferta</option></select></label>
       <label class="field"><span class="label">Competizione</span><input type="text" id="nComp" autocomplete="off" list="compList" placeholder="facoltativo"></label>
     </div>
+    <label class="field"><span class="label">Formato di gioco</span><select id="nFmt"><option value="">Non indicato</option><option value="5">A 5</option><option value="7">A 7</option><option value="9">A 9</option><option value="11">A 11</option></select></label>
     <label class="field"><span class="label">Indirizzo del campo (facoltativo)</span><input type="text" id="nAddr" autocomplete="off" placeholder="es. Via Roma 1, Velletri"></label>
-    <label class="field"><span class="label">Link diretta YouTube (facoltativo)</span><input type="url" inputmode="url" id="nYt" autocomplete="off" autocapitalize="none" placeholder="https://youtube.com/live/..."></label>
+    <label class="field"><span class="label">Link diretta YouTube o Twitch (facoltativo)</span><input type="url" inputmode="url" id="nYt" autocomplete="off" autocapitalize="none" placeholder="https://youtube.com/live/..."></label>
     <div class="hint" id="nHint">La diretta e le convocazioni sono indicate 45 minuti prima dell'inizio.</div>
     <div class="hint warn" id="nextErr" hidden></div>
     <div class="sheet-actions">

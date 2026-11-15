@@ -164,13 +164,13 @@ function render(){
     const teams=home?`<span class="us">${team}</span> – ${esc(m.opp)}`:`${esc(m.opp)} – <span class="us">${team}</span>`;
     const score=home?`${m.gf}–${m.ga}`:`${m.ga}–${m.gf}`;
     const goals=(m.scorers||[]).filter(s=>s.name).map(s=>`<span class="g ${isKid(s.name)?"me":""}">${BALL}${esc(s.name)}${s.goals>1?` ×${s.goals}`:""}</span>`).join("");
-    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(videosFor(m).length?`<button type="button" class="btn btn-ghost btn-sm" data-mvid="${m.id}">Spezzoni</button>`:"")+`<button type="button" class="btn btn-ghost btn-sm" data-mcom="${m.id}">Messaggi${comBadge(m.id)}</button>`+(m.x&&ytId(m.x.yt)?`<a class="btn btn-ghost btn-sm" href="https://www.youtube.com/watch?v=${ytId(m.x.yt)}" target="_blank" rel="noopener">Rivedi la partita</a>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
+    const share=`<button type="button" class="btn btn-ghost btn-sm share-btn" data-act="share" data-id="${m.id}">${I.share}Condividi</button><button type="button" class="btn btn-ghost btn-sm" data-act="img" data-id="${m.id}">${I.card}Immagine</button>`+(m.x&&m.x.poster&&m.x.poster.i?`<button type="button" class="btn btn-ghost btn-sm" data-poster-match="${m.id}">${I.img}Locandina</button>`:"")+(videosFor(m).length?`<button type="button" class="btn btn-ghost btn-sm" data-mvid="${m.id}">Spezzoni</button>`:"")+`<button type="button" class="btn btn-ghost btn-sm" data-mcom="${m.id}">Messaggi${comBadge(m.id)}</button>`+(m.x&&ytId(m.x.yt)?`<a class="btn btn-ghost btn-sm" href="${vidOpenUrl(ytId(m.x.yt))}" target="_blank" rel="noopener">Rivedi la partita</a>`:"")+(safeUrl(m.x&&m.x.ph)?`<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(safeUrl(m.x.ph))}">${I.img}Foto</a>`:"");
     const act=share+(readOnly||confirmId===m.id?"":`<button type="button" class="btn btn-ghost btn-sm" data-act="edit" data-id="${m.id}">${I.edit}Modifica</button>`);
     const delRow=readOnly?"":(confirmId===m.id
       ?`<div class="del-row"><span class="confirm">Eliminare questa partita?</span><button type="button" class="btn btn-ghost btn-sm" data-act="nodel">No</button><button type="button" class="btn btn-danger btn-sm" data-act="del" data-id="${m.id}">Elimina</button></div>`
       :`<div class="del-row"><button type="button" class="del-link" data-act="askdel" data-id="${m.id}">${I.del}Elimina partita</button></div>`);
     return `<article class="match ${r}">
-      <div class="meta"><span>${m.date?esc(fmtDate(m.date)):(m.n?m.n+"ª partita":"Data da inserire")}</span><span>·</span><span>${esc(m.comp||"")}</span><span>·</span><span>${home?"In casa":"Trasferta"}</span><span class="pill r-${r}">${lab}</span></div>
+      <div class="meta"><span>${m.date?esc(fmtDate(m.date)):(m.n?m.n+"ª partita":"Data da inserire")}</span><span>·</span><span>${esc(m.comp||"")}</span><span>·</span><span>${home?"In casa":"Trasferta"}</span><span class="pill r-${r}">${lab}</span>${fmtTag(m.x&&m.x.fmt)}</div>
       <div class="score num" aria-label="Risultato">${score}</div>
       <div class="teams">${teams}</div>
       ${goals?`<div class="goals-list">${goals}</div>`:""}
@@ -216,7 +216,7 @@ $("addAssist").onclick=()=>{assistRow();const r=document.querySelectorAll(".assi
 function readExtra(){const as=[...document.querySelectorAll(".assist-row")].map(r=>{const [p,q]=r.querySelectorAll("input");return{name:p.value.trim(),n:Math.max(1,parseInt(q.value)||1)}}).filter(s=>s.name);
   const yc=[...document.querySelectorAll("#yellowRows input:checked")].map(i=>i.value);const mvp=$("fMvp").value;
   const min={};document.querySelectorAll("#minRows input").forEach(i=>{const v=parseInt(i.value);if(v>0)min[i.dataset.name]=v});
-  const ph=safeUrl($("fPhotos").value);const x={};if(as.length)x.as=as;if(yc.length)x.yc=yc;if(mvp)x.mvp=mvp;if(Object.keys(min).length)x.min=min;if(ph)x.ph=ph;return x}
+  const ph=safeUrl($("fPhotos").value);const x={};if(as.length)x.as=as;if(yc.length)x.yc=yc;if(mvp)x.mvp=mvp;if(Object.keys(min).length)x.min=min;if(ph)x.ph=ph;if($("fFmt").value)x.fmt=$("fFmt").value;return x}
 function setWhere(v){$("fWhere").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v)))}
 function openForm(m){
   editingId=m?m.id:null;$("formTitle").textContent=m?"Modifica partita":"Nuova partita";
@@ -226,7 +226,7 @@ function openForm(m){
   const pz=new Set((m?.presenti||[]).map(norm));
   $("presRows").innerHTML=[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map((p,i)=>`<label class="pres-item"><input type="checkbox" id="pr${i}" value="${esc(p.name)}"${pz.has(norm(p.name))?" checked":""}> ${esc(p.name)}</label>`).join("");
   $("scorerRows").innerHTML="";(m?.scorers||[]).forEach(s=>scorerRow(s.name,s.goals));
-  const x=(m&&m.x)||{};const sp=[...S.players].sort((p,q)=>p.name.localeCompare(q.name));
+  const x=(m&&m.x)||{};$("fFmt").value=x.fmt||"";const sp=[...S.players].sort((p,q)=>p.name.localeCompare(q.name));
   $("assistRows").innerHTML="";(x.as||[]).forEach(s=>assistRow(s.name,s.n));
   const yz=new Set((x.yc||[]).map(norm));$("yellowRows").innerHTML=sp.map((p,i)=>`<label class="pres-item"><input type="checkbox" id="yc${i}" value="${esc(p.name)}"${yz.has(norm(p.name))?" checked":""}> ${esc(p.name)}</label>`).join("");
   $("fMvp").innerHTML=`<option value="">—</option>`+sp.map(p=>`<option value="${esc(p.name)}"${x.mvp&&norm(x.mvp)===norm(p.name)?" selected":""}>${esc(p.name)}</option>`).join("");
@@ -246,7 +246,7 @@ $("matchForm").addEventListener("submit",async e=>{
   const opp=$("fOpp").value.trim();const date=$("fDate").value;
   if(!opp){err.textContent="Inserisci il nome dell'avversario.";err.hidden=false;return}
   const prev=S.matches.find(x=>x.id===editingId);const m={id:editingId||newId("m"),n:prev?prev.n:(Math.max(0,...S.matches.map(x=>x.n||0))+1),date,opp,comp:$("fComp").value,where:$("fWhere").querySelector('[aria-pressed="true"]').dataset.v,
-    gf:Math.max(0,parseInt($("fGF").value)||0),ga:Math.max(0,parseInt($("fGA").value)||0),scorers:readScorers(),presenti:[...document.querySelectorAll("#presRows input:checked")].map(i=>i.value),note:$("fNote").value.trim(),x:Object.assign(readExtra(),prev&&prev.x?Object.assign({},prev.x.pics?{pics:prev.x.pics}:{},prev.x.poster?{poster:prev.x.poster}:{}):{})};
+    gf:Math.max(0,parseInt($("fGF").value)||0),ga:Math.max(0,parseInt($("fGA").value)||0),scorers:readScorers(),presenti:[...document.querySelectorAll("#presRows input:checked")].map(i=>i.value),note:$("fNote").value.trim(),x:Object.assign(readExtra(),prev&&prev.x?Object.assign({},prev.x.pics?{pics:prev.x.pics}:{},prev.x.poster?{poster:prev.x.poster}:{},prev.x.yt?{yt:prev.x.yt}:{}):{})};
   $("saveBtn").disabled=true;
   const ok=await commit(st=>{const i=st.matches.findIndex(x=>x.id===m.id);if(i>=0)st.matches[i]=m;else st.matches.push(m)});
   $("saveBtn").disabled=false;
@@ -307,12 +307,22 @@ function syncUsersTab(){const t=$("tabUtenti");if(t)t.hidden=readOnly;if(readOnl
 
 
 /* ---------- video YouTube + allenamento in diretta ---------- */
-function ytId(u){u=String(u||"").trim();if(!u)return"";if(/^[\w-]{11}$/.test(u))return u;
+function twId(u){u=String(u||"").trim();if(!/twitch\.tv/i.test(u))return"";
+  try{const x=new URL(/^https?:/i.test(u)?u:"https://"+u);const h=x.hostname.replace(/^(www|m|player)\./,"");if(h!=="twitch.tv")return"";
+    const p=x.pathname.split("/").filter(Boolean);
+    if(p[0]==="videos"&&/^\d+$/.test(p[1]||""))return"twv:"+p[1];
+    const v=x.searchParams.get("video");if(v&&/^v?\d+$/.test(v))return"twv:"+v.replace(/^v/,"");
+    const c=x.searchParams.get("channel")||p[0]||"";return /^\w{3,25}$/.test(c)&&!["videos","directory","downloads","p"].includes(c.toLowerCase())?"tw:"+c.toLowerCase():""}catch(_){return""}}
+function fmtTag(f){return f?`<span class="fmt-tag">A ${esc(f)}</span>`:""}
+function ytId(u){u=String(u||"").trim();if(!u)return"";const tw=twId(u);if(tw)return tw;if(/^[\w-]{11}$/.test(u))return u;
   try{const x=new URL(/^https?:/i.test(u)?u:"https://"+u);const h=x.hostname.replace(/^(www|m)\./,"");let id="";
     if(h==="youtu.be")id=x.pathname.slice(1,12);
     else if(/(^|\.)youtube(-nocookie)?\.com$/.test(h)){id=x.searchParams.get("v")||"";if(!id){const p=x.pathname.split("/").filter(Boolean);if(["live","embed","shorts","v"].includes(p[0])&&p[1])id=p[1]}}
     return /^[\w-]{11}$/.test(id.slice(0,11))&&id.length>=11?id.slice(0,11):""}catch(_){return""}}
+function vidOpenUrl(id){return id.startsWith("twv:")?"https://www.twitch.tv/videos/"+id.slice(4):id.startsWith("tw:")?"https://www.twitch.tv/"+id.slice(3):"https://www.youtube.com/watch?v="+id}
 function setVideo(el,url){if(!el)return;const id=ytId(url);if(el.dataset.v===id)return;el.dataset.v=id;
+  if(id.startsWith("tw")){const par=[...new Set([location.hostname,"df2018.it"])].map(d=>"&parent="+encodeURIComponent(d)).join("");const q=id.startsWith("twv:")?"video=v"+id.slice(4):"channel="+id.slice(3);
+    el.innerHTML=`<div class="yt"><iframe src="https://player.twitch.tv/?${q}${par}&autoplay=false" title="Video in diretta" allow="autoplay; picture-in-picture; fullscreen" allowfullscreen></iframe></div><a class="yt-open" href="${vidOpenUrl(id)}" target="_blank" rel="noopener">Apri su Twitch</a>`;el.hidden=false;return}
   el.innerHTML=id?`<div class="yt"><iframe src="https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0" title="Video in diretta" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><a class="yt-open" href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener">Apri su YouTube</a>`:"";el.hidden=!id}
 function getTrain(){try{const t=JSON.parse(S.settings.training||"null");return t&&typeof t==="object"?t:null}catch(_){return null}}
 let ytMode=null,trainEnd=false;
@@ -337,7 +347,7 @@ function openYt(mode){ytMode=mode;const t=getTrain();const tr=mode==="train";
 $("ytCancel").onclick=()=>$("ytBg").hidden=true;
 $("ytBg").addEventListener("click",e=>{if(e.target===$("ytBg"))$("ytBg").hidden=true});
 async function ytSave(url,remove){const tr=ytMode==="train";const raw=(url||"").trim();
-  if(raw&&!ytId(raw)){$("ytErr").textContent="Non riconosco il link: incolla l'indirizzo del video o della diretta YouTube.";$("ytErr").hidden=false;return}
+  if(raw&&!ytId(raw)){$("ytErr").textContent="Non riconosco il link: incolla l'indirizzo del video o della diretta (YouTube o Twitch).";$("ytErr").hidden=false;return}
   const title=$("ytTitle").value.trim()||"Allenamento";
   const ok=await commit(st=>{if(tr){const old=(()=>{try{return JSON.parse(st.settings.training||"null")}catch(_){return null}})();st.settings.training=JSON.stringify({title,yt:raw,since:old&&old.since||new Date().toISOString()})}else if(st.live){st.live.yt=remove?"":raw}});
   if(ok){$("ytBg").hidden=true;if(tr)setTab("allenamento")}else{$("ytErr").textContent="Non riesco a salvare.";$("ytErr").hidden=false}}
@@ -479,7 +489,7 @@ function renderLive(){renderNext();updateAlertBar();maybeAskPush();$("tabLiveDot
     :liveConfirm==="cancel"?`<span class="confirm">Annullare la diretta senza salvare?</span><span style="display:flex;gap:6px"><button type="button" class="btn btn-ghost btn-sm" data-live="no">No</button><button type="button" class="btn btn-danger btn-sm" data-live="cancelok">Annulla diretta</button></span>`
     :`<span style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-live="undo"${(L.events||[]).length?"":" disabled"}>Annulla ultimo</button><button type="button" class="btn btn-ghost btn-sm" data-live="cancel">Annulla diretta</button></span><button type="button" class="btn btn-primary btn-sm" data-live="end">Fine partita</button>`);
   const scNow=ls+"-"+rs;box.innerHTML=`<div class="live-card">
-    <div class="live-top"><span class="live-badge"><i></i>DIRETTA</span><span>${esc(L.comp||"")}</span><span>·</span><span>${home?"In casa":"In trasferta"}</span>${L.updated?`<span>· agg. ${esc(L.updated)}</span>`:""}</div>
+    <div class="live-top"><span class="live-badge"><i></i>DIRETTA</span><span>${esc(L.comp||"")}</span><span>·</span><span>${home?"In casa":"In trasferta"}</span>${L.fmt?`<span>· ${fmtTag(L.fmt)}</span>`:""}${L.updated?`<span>· agg. ${esc(L.updated)}</span>`:""}</div>
     <div class="live-score"><span class="tm ${home?"us":""}">${esc(left)}</span><span class="sc${lastSc!==null&&lastSc!==ls+"-"+rs?" bump":""}">${ls}–${rs}</span><span class="tm ${home?"":"us"}">${esc(right)}</span></div>
     ${ctrl}
     ${ev?`<ul class="feed">${ev}</ul>`:`<div class="status">Ancora nessun aggiornamento.</div>`}
@@ -509,7 +519,7 @@ $("liveBox").addEventListener("click",async e=>{const b=e.target.closest("[data-
       if(src){let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=[];if(!l.some(y=>y.id===src.id)){l.push(src);st.settings.nextList=JSON.stringify(l)}}});return}
   if(a==="endok"){liveConfirm=null;await commit(st=>{const x=st.live;if(!x)return;const tally={};(x.events||[]).filter(ev=>ev.type==="gol"&&ev.scorer).forEach(ev=>{tally[ev.scorer]=(tally[ev.scorer]||0)+1});
     const n=Math.max(0,...st.matches.map(m=>m.n||0))+1;
-    st.matches.push({id:newId("m"),n,date:x.date,opp:x.opp,comp:x.comp,where:x.where,gf:x.gf,ga:x.ga,scorers:Object.entries(tally).map(([name,goals])=>({name,goals})),presenti:x.presenti||[],note:"",...((x.from&&x.from.poster)||x.yt?{x:Object.assign({},x.from&&x.from.poster?{poster:x.from.poster}:{},x.yt?{yt:x.yt}:{})}:{})});st.live=null});return}
+    st.matches.push({id:newId("m"),n,date:x.date,opp:x.opp,comp:x.comp,where:x.where,gf:x.gf,ga:x.ga,scorers:Object.entries(tally).map(([name,goals])=>({name,goals})),presenti:x.presenti||[],note:"",...((x.from&&x.from.poster)||x.yt||x.fmt?{x:Object.assign({},x.from&&x.from.poster?{poster:x.from.poster}:{},x.yt?{yt:x.yt}:{},x.fmt?{fmt:x.fmt}:{})}:{})});st.live=null});return}
 });
 
 
@@ -598,7 +608,7 @@ function getNexts(){return readNexts().map(n=>{if(!n.opp||!n.date)return null;co
   return Object.assign({},n,{start:t,liveFrom:new Date(t.getTime()-45*6e4)})}).filter(Boolean).sort((x,y)=>x.start-y.start)}
 const getNext=()=>getNexts()[0]||null;
 function saveNexts(list){return commit(st=>{["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(k=>{delete st.settings[k]});
-  st.settings.nextList=JSON.stringify(list.map(x=>({id:x.id,opp:x.opp,date:x.date,time:x.time,where:x.where,comp:x.comp||"",addr:x.addr||"",poster:x.poster||null,conv:x.conv||null,yt:x.yt||""})))})}
+  st.settings.nextList=JSON.stringify(list.map(x=>({id:x.id,opp:x.opp,date:x.date,time:x.time,where:x.where,comp:x.comp||"",fmt:x.fmt||"",addr:x.addr||"",poster:x.poster||null,conv:x.conv||null,yt:x.yt||""})))})}
 const hm=d=>d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
 function nextCountdown(n){const now=Date.now(),st=n.start.getTime(),lf=n.liveFrom.getTime();
   if(now>=st)return"La partita è iniziata.";
@@ -614,7 +624,7 @@ function nextCard(n,first){const team=S.settings.team||"DF Academy";const home=n
   const day=n.start.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
   const isUrl=/^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)/i.test(n.addr||"");const map=n.addr?`<a class="u-map" target="_blank" rel="noopener" href="${isUrl?esc(n.addr):"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(n.addr)}">📍 ${isUrl?"Indicazioni sul campo":esc(n.addr)} · Apri la mappa</a>`:"";
   const acts=`<div class="u-actions"><button type="button" class="btn btn-ghost btn-sm" data-next="ics" data-id="${esc(n.id)}">📅 Aggiungi al calendario</button>`+(readOnly?"":`<button type="button" class="btn btn-primary btn-sm" data-next="live" data-id="${esc(n.id)}">● Avvia diretta</button><button type="button" class="btn btn-ghost btn-sm" data-next="conv" data-id="${esc(n.id)}">${n.conv&&n.conv.names&&n.conv.names.length?"Modifica convocazioni":"Convocazioni"}</button><button type="button" class="btn btn-ghost btn-sm" data-next="edit" data-id="${esc(n.id)}">Modifica</button><button type="button" class="btn btn-ghost btn-sm" data-next="del" data-id="${esc(n.id)}">Rimuovi</button>`)+`</div>`;
-  return `<div class="upc${first?"":" small"}${n.poster&&n.poster.i?" has-hero":""}">${n.poster&&n.poster.i?`<div class="u-hero" data-poster-open="${esc(n.id)}"><img alt="" data-t="${esc(n.poster.t||n.poster.i)}"${PIC[n.poster.t||n.poster.i]?` src="${PIC[n.poster.t||n.poster.i]}"`:""}></div>`:""}<div class="u-top"><span class="u-badge">${first?"PROSSIMA PARTITA":"IN ARRIVO"}</span><span>${home?"In casa":"In trasferta"}</span>${n.comp?`<span>· ${esc(n.comp)}</span>`:""}</div>
+  return `<div class="upc${first?"":" small"}${n.poster&&n.poster.i?" has-hero":""}">${n.poster&&n.poster.i?`<div class="u-hero" data-poster-open="${esc(n.id)}"><img alt="" data-t="${esc(n.poster.t||n.poster.i)}"${PIC[n.poster.t||n.poster.i]?` src="${PIC[n.poster.t||n.poster.i]}"`:""}></div>`:""}<div class="u-top"><span class="u-badge">${first?"PROSSIMA PARTITA":"IN ARRIVO"}</span><span>${home?"In casa":"In trasferta"}</span>${n.comp?`<span>· ${esc(n.comp)}</span>`:""}${n.fmt?`<span>· ${fmtTag(n.fmt)}</span>`:""}</div>
     <div class="u-teams">${teams}</div>
     <div class="u-when">${esc(day)} · ore ${esc(n.time||"")}</div>${map}
     <div class="u-live">Convocazioni e diretta dalle <b>${hm(n.liveFrom)}</b> (45 minuti prima).</div>
@@ -661,16 +671,16 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-next]");if
   if(a==="edit"){openNextForm(readNexts().find(x=>x.id===id));return}
   if(a==="add"){openNextForm(null);return}
   if(a==="del"){saveNexts(readNexts().filter(x=>x.id!==id));return}});
-function openNextForm(n){n=n||{};editingNext=n.id||null;$("nOpp").value=n.opp||"";$("nDate").value=n.date||"";$("nTime").value=n.time||"";$("nWhere").value=n.where||"trasferta";$("nComp").value=n.comp||"";$("nAddr").value=n.addr||"";$("nYt").value=n.yt||"";$("nextErr").hidden=true;$("nextBg").hidden=false;setTimeout(()=>$("nOpp").focus(),50)}
+function openNextForm(n){n=n||{};editingNext=n.id||null;$("nOpp").value=n.opp||"";$("nDate").value=n.date||"";$("nTime").value=n.time||"";$("nWhere").value=n.where||"trasferta";$("nComp").value=n.comp||"";$("nFmt").value=n.fmt||"";$("nAddr").value=n.addr||"";$("nYt").value=n.yt||"";$("nextErr").hidden=true;$("nextBg").hidden=false;setTimeout(()=>$("nOpp").focus(),50)}
 $("nextCancel").onclick=()=>$("nextBg").hidden=true;
 $("nextBg").addEventListener("click",e=>{if(e.target===$("nextBg"))$("nextBg").hidden=true});
 $("nextForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("nOpp").value.trim(),date=$("nDate").value,time=$("nTime").value;
   if(!opp||!date||!time){$("nextErr").textContent="Inserisci avversario, data e ora.";$("nextErr").hidden=false;return}
-  const item={id:editingNext||newId("n"),opp,date,time,where:$("nWhere").value,comp:$("nComp").value.trim(),addr:$("nAddr").value.trim(),yt:$("nYt").value.trim()};
+  const item={id:editingNext||newId("n"),opp,date,time,where:$("nWhere").value,comp:$("nComp").value.trim(),fmt:$("nFmt").value,addr:$("nAddr").value.trim(),yt:$("nYt").value.trim()};
   const list=readNexts();const i=list.findIndex(x=>x.id===item.id);if(i>=0){item.poster=list[i].poster||null;item.conv=list[i].conv||null;list[i]=item}else list.push(item);
   const ok=await saveNexts(list);
   if(ok)$("nextBg").hidden=true;else{$("nextErr").textContent=$("status").textContent||"Non riesco a salvare.";$("nextErr").hidden=false}});
-function openLiveForm(n){$("lOpp").value=n&&n.opp||"";$("lWhere").value=n&&n.where||"casa";$("lComp").value=n&&n.comp||"Campionato";$("liveErr").hidden=true;
+function openLiveForm(n){$("lOpp").value=n&&n.opp||"";$("lWhere").value=n&&n.where||"casa";$("lComp").value=n&&n.comp||"Campionato";$("lFmt").value=n&&n.fmt||"";$("liveErr").hidden=true;
   $("lPres").innerHTML=[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map((p,i)=>`<label class="pres-item"><input type="checkbox" id="lp${i}" value="${esc(p.name)}"> ${esc(p.name)}</label>`).join("");
   if(n&&n.conv&&n.conv.names&&n.conv.names.length){const cs=new Set(n.conv.names);document.querySelectorAll("#lPres input").forEach(i=>{i.checked=cs.has(i.value)})}
   $("liveBg").hidden=false;setTimeout(()=>$("lOpp").focus(),50)}
@@ -678,7 +688,7 @@ $("liveCancel").onclick=()=>$("liveBg").hidden=true;
 $("liveBg").addEventListener("click",e=>{if(e.target===$("liveBg"))$("liveBg").hidden=true});
 $("liveForm").addEventListener("submit",async e=>{e.preventDefault();const opp=$("lOpp").value.trim();if(!opp){$("liveErr").textContent="Inserisci l'avversario.";$("liveErr").hidden=false;return}
   const t=new Date();const date=new Date(t.getTime()-t.getTimezoneOffset()*6e4).toISOString().slice(0,10);
-  const live={opp,where:$("lWhere").value,comp:$("lComp").value.trim()||"Campionato",date,gf:0,ga:0,events:[],updated:nowHM(),presenti:[...document.querySelectorAll("#lPres input:checked")].map(i=>i.value)};
+  const live={opp,fmt:$("lFmt").value,where:$("lWhere").value,comp:$("lComp").value.trim()||"Campionato",date,gf:0,ga:0,events:[],updated:nowHM(),presenti:[...document.querySelectorAll("#lPres input:checked")].map(i=>i.value)};
   const fromId=liveFromNext;const ok=await commit(st=>{st.live=live;let l=[];try{l=JSON.parse(st.settings.nextList||"null")}catch(_){}if(!Array.isArray(l))l=readNexts();const src=fromId?l.find(x=>x.id===fromId):null;if(src&&st.live){st.live.from=src;if(src.yt)st.live.yt=src.yt}const k=l.filter(x=>x.id!==fromId&&!(!fromId&&String(x.opp).toLowerCase()===opp.toLowerCase()));if(k.length!==l.length||!st.settings.nextList){["nextOpp","nextDate","nextTime","nextWhere","nextComp"].forEach(q=>{delete st.settings[q]});st.settings.nextList=JSON.stringify(k)}});liveFromNext=null;if(ok)$("liveBg").hidden=true;else{$("liveErr").textContent=$("status").textContent||"Non riesco ad avviare la diretta.";$("liveErr").hidden=false}});
 
 /* ---------- condividi ---------- */
