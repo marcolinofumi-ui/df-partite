@@ -59,6 +59,14 @@ function fmtDate(d){if(!d)return"";const [y,m,g]=d.split("-").map(Number);return
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
 /* ---------- render ---------- */
+let FMTF="";try{FMTF=localStorage.getItem("fmtF")||""}catch(e){}
+const fmtOf=m=>String((m.x&&m.x.fmt)||"");
+const fmtOk=m=>!FMTF||(FMTF==="-"?!fmtOf(m):fmtOf(m)===FMTF);
+function renderFmtF(){const el=$("fmtFilters");if(!el)return;const all=S.matches;const fs=[...new Set(all.map(fmtOf).filter(Boolean))].sort((a,b)=>a-b);
+  if(!fs.length){el.innerHTML="";el.hidden=true;if(FMTF)FMTF="";return}
+  const opts=[["","Tutti"],...fs.map(f=>[f,"A "+f])];if(all.some(m=>!fmtOf(m)))opts.push(["-","Non indicato"]);
+  if(!opts.some(o=>o[0]===FMTF))FMTF="";
+  el.hidden=false;el.innerHTML=`<span class="label">Formato</span>`+opts.map(([v,t])=>`<button type="button" class="chip-f" data-fmtf="${v}" aria-pressed="${v===FMTF}">${t}</button>`).join("")}
 function render(){
   const set=S.settings;
   $("teamName").textContent=set.team||"DF Academy";
@@ -66,7 +74,8 @@ function render(){
   $("lblUs").textContent="Gol "+(set.team||"DF");
   
   $("settingsBtn").hidden=readOnly;$("addBtn").hidden=readOnly;$("addPlayerForm").hidden=readOnly;
-  const list=sorted();
+  renderFmtF();
+  const list=sorted().filter(fmtOk);
   const team=esc(set.team||"DF Academy");
   let v=0,n=0,p=0,gf=0,ga=0;list.forEach(m=>{const r=result(m);r==="V"?v++:r==="N"?n++:p++;gf+=m.gf||0;ga+=m.ga||0});
   $("sPlayed").textContent=list.length;$("sRecord").textContent=`${v}·${n}·${p}`;$("sGF").textContent=gf;$("sGA").textContent=ga;
@@ -276,6 +285,7 @@ $("addPlayerForm").addEventListener("submit",async e=>{
   if(S.players.some(x=>norm(x.name)===norm(name))){$("pName").select();setStatus(name+" è già in rosa.",true);return}
   await commit(st=>{st.players.push({id:newId("p"),name,role:$("pRole").value})});
 });
+document.addEventListener("click",e=>{const b=e.target.closest("[data-fmtf]");if(!b)return;FMTF=b.dataset.fmtf;try{localStorage.setItem("fmtF",FMTF)}catch(x){}render()});
 $("filters").addEventListener("click",e=>{const b=e.target.closest("[data-c]");if(b){filter=b.dataset.c;render()}});
 
 
@@ -736,7 +746,7 @@ async function shareImage(m){const blob=await matchImage(m);if(!blob)return;cons
 
 /* ---------- report di fine stagione (stampa / PDF) ---------- */
 function openReport(){const team=S.settings.team||"DF Academy";
-  const list=[...S.matches].sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.n||0)-(b.n||0));
+  const list=S.matches.filter(fmtOk).sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.n||0)-(b.n||0));
   const cnt=r=>list.filter(m=>result(m)===r).length;const gf=list.reduce((t,m)=>t+(+m.gf||0),0),ga=list.reduce((t,m)=>t+(+m.ga||0),0);
   const sh=n=>n.split(" ").slice(-1)[0];
   const mrows=list.map(m=>{const home=m.where!=="trasferta";const sc=home?m.gf+"–"+m.ga:m.ga+"–"+m.gf;const t=home?team+" – "+m.opp:m.opp+" – "+team;
@@ -797,7 +807,7 @@ $("matches").addEventListener("change",async e=>{const inp=e.target.closest("inp
 
 /* ---------- scheda giocatore ---------- */
 function openPlayer(id){const p=S.players.find(x=>x.id===id);if(!p)return;const k=norm(p.name);
-  const chron=[...S.matches].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.n||0)-(a.n||0));
+  const chron=S.matches.filter(fmtOk).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.n||0)-(a.n||0));
   const played=chron.filter(m=>(m.presenti||[]).some(n=>norm(n)===k));
   const goals=chron.reduce((t,m)=>t+((m.scorers||[]).filter(s=>norm(s.name)===k).reduce((a,s)=>a+(+s.goals||0),0)),0);
   const rows=chron.map(m=>{const inn=(m.presenti||[]).some(n=>norm(n)===k);const g=(m.scorers||[]).filter(s=>norm(s.name)===k).reduce((a,s)=>a+(+s.goals||0),0);const home=m.where!=="trasferta";
