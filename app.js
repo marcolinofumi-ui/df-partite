@@ -11,7 +11,7 @@ const I={cam:ICO('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r=
 const BALL='<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 4.6l2.6 1.9-1 3.1H6.4l-1-3.1z" fill="currentColor"/></svg>';
 const LS={get(k){try{return JSON.parse(localStorage.getItem("df_"+k))}catch(_){return null}},set(k,v){try{localStorage.setItem("df_"+k,JSON.stringify(v))}catch(_){}},del(k){try{localStorage.removeItem("df_"+k)}catch(_){}}};
 let S=normState({}),VERSION=null,SESSION=LS.get("session");
-let livePick=false,liveConfirm=null,filter="Tutte",editingId=null,confirmId=null,confirmPlayer=null,readOnly=true,saving=false,pollTimer=null;
+let livePick=false,liveConfirm=null,filter="Tutte",editingId=null,confirmId=null,confirmPlayer=null,readOnly=true,media=false,saving=false,pollTimer=null;
 
 const newId=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function normState(st){st=st||{};return{matches:st.matches||[],players:st.players||[],live:st.live||null,
@@ -33,12 +33,12 @@ async function api(action,data){
 }
 const ERR={offline:"Nessuna connessione. Mostro gli ultimi dati scaricati.",config:"App non configurata: manca l'indirizzo del foglio Google in config.js.",
   credenziali_errate:"Utente o password non corretti.",credenziali_mancanti:"Inserisci utente e password.",sessione_scaduta:"Sessione scaduta: accedi di nuovo.",
-  sessione_non_valida:"Sessione non valida: accedi di nuovo.",accesso_richiesto:"Accedi per vedere le partite.",non_autorizzato:"Il tuo utente può solo consultare.",
+  sessione_non_valida:"Sessione non valida: accedi di nuovo.",accesso_richiesto:"Accedi per vedere le partite.",non_autorizzato:"Il tuo utente non ha questo permesso.",
   foto_troppo_grande:"La foto è troppo grande.",non_trovata:"Foto non trovata.",conflitto:"I dati sono stati modificati da un altro dispositivo: ho caricato la versione aggiornata, ripeti la modifica."};
 const errMsg=e=>ERR[e&&e.code]||"Qualcosa non ha funzionato, riprova tra poco.";
 
 async function commit(mut){
-  if(readOnly||saving)return false;
+  if((readOnly&&!media)||saving)return false;
   const next=JSON.parse(JSON.stringify(S));mut(next);
   saving=true;setStatus("Salvataggio in corso…",false);
   try{const j=await api("save",{token:SESSION.token,state:next,baseVersion:VERSION});
@@ -299,7 +299,7 @@ document.querySelectorAll("[data-eye]").forEach(b=>{eyeSet(b,false);b.addEventLi
 let USERS=[],userEdit=null;
 const UERR={utente_non_valido:"Nome utente non valido: 2-30 caratteri tra lettere minuscole, numeri, punto, trattino.",password_corta:"La password deve avere almeno 4 caratteri.",utente_esiste:"Esiste già un utente con questo nome.",utente_non_trovato:"Utente non trovato.",ultimo_admin:"Deve restare almeno un admin.",no_auto_eliminazione:"Non puoi eliminare il tuo utente.",azione_sconosciuta:"Il foglio Google non è ancora aggiornato per gestire gli utenti: ridistribuisci lo script."};
 const uMsg=e=>UERR[e&&e.code]||errMsg(e);
-function renderUsers(){const me=SESSION&&SESSION.user;$("uList").innerHTML=USERS.length?USERS.map(u=>`<div class="urow"><b>${esc(u.user)}</b>${u.user===me?'<span class="me">tu</span>':""}<span class="badge${u.role==="admin"?" adm":""}">${u.role==="admin"?"Admin":"Lettore"}</span><button type="button" class="btn btn-ghost btn-sm" data-uedit="${esc(u.user)}">Modifica</button>${u.user===me?"":`<button type="button" class="btn btn-ghost btn-sm" data-udel="${esc(u.user)}">Elimina</button>`}</div>`).join(""):'<p class="status">Nessun utente.</p>'}
+function renderUsers(){const me=SESSION&&SESSION.user;$("uList").innerHTML=USERS.length?USERS.map(u=>`<div class="urow"><b>${esc(u.user)}</b>${u.user===me?'<span class="me">tu</span>':""}<span class="badge${u.role==="admin"?" adm":""}">${{admin:"Admin",regia:"Regia"}[u.role]||"Lettore"}</span><button type="button" class="btn btn-ghost btn-sm" data-uedit="${esc(u.user)}">Modifica</button>${u.user===me?"":`<button type="button" class="btn btn-ghost btn-sm" data-udel="${esc(u.user)}">Elimina</button>`}</div>`).join(""):'<p class="status">Nessun utente.</p>'}
 async function loadUsers(){if(readOnly)return;try{const j=await api("usersList",{token:SESSION.token});USERS=j.users;renderUsers()}catch(e){$("uList").innerHTML=`<p class="status">${esc(uMsg(e))}</p>`}}
 function openUser(name){userEdit=name||null;const u=USERS.find(x=>x.user===name);$("uTitle").textContent=u?"Modifica utente":"Nuovo utente";$("uName").value=u?u.user:"";$("uName").readOnly=!!u;$("uPass").value="";$("uPassLbl").textContent=u?"Nuova password (vuoto = non cambiare)":"Password";$("uRole").value=u?u.role:"lettore";$("uErr").hidden=true;document.querySelectorAll("#userForm [data-eye]").forEach(b=>eyeSet(b,false));$("userBg").hidden=false;setTimeout(()=>(u?$("uPass"):$("uName")).focus(),50)}
 $("uAdd").onclick=()=>openUser(null);
@@ -373,9 +373,9 @@ function getVideos(){let l=null;try{l=JSON.parse(S.settings.videos||"null")}catc
   return l.filter(v=>v&&/^[\w-]{20,}$/.test(v.id)).map(v=>({id:v.id,name:v.name||"Video",date:v.date||vidDate(v.name)})).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||a.name.localeCompare(b.name))}
 function videosFor(m){return getVideos().filter(v=>{if(!v.date||v.date!==m.date)return false;const x=String(v.name).match(/(\d+)-(\d+)\s*$/);if(!x)return true;const a=+x[1],b=+x[2];return (a===m.gf&&b===m.ga)||(a===m.ga&&b===m.gf)})}
 function driveId(u){u=String(u||"").trim();if(/^[\w-]{20,}$/.test(u))return u;const m=u.match(/\/d\/([\w-]{20,})/)||u.match(/[?&]id=([\w-]{20,})/);return m?m[1]:""}
-function renderVideos(){const sec=$("videoSec");const l=getVideos();sec.hidden=!l.length&&readOnly;
-  $("vidAdd").hidden=readOnly;
-  $("vidList").innerHTML=l.length?l.map(v=>`<div class="vrow"><button type="button" class="vplay" data-vid="${esc(v.id)}"><span class="vico">▶</span><span class="vtxt"><b>${esc(vidTitle(v.name))}</b>${v.date?`<small>${esc(fmtDate(v.date))}</small>`:""}</span></button>${readOnly?"":`<button type="button" class="icon-btn" data-vdel="${esc(v.id)}" aria-label="Rimuovi video">✕</button>`}</div>`).join(""):'<p class="status">Nessuno spezzone.</p>'}
+function renderVideos(){const sec=$("videoSec");const l=getVideos();sec.hidden=!l.length&&!media;
+  $("vidAdd").hidden=!media;
+  $("vidList").innerHTML=l.length?l.map(v=>`<div class="vrow"><button type="button" class="vplay" data-vid="${esc(v.id)}"><span class="vico">▶</span><span class="vtxt"><b>${esc(vidTitle(v.name))}</b>${v.date?`<small>${esc(fmtDate(v.date))}</small>`:""}</span></button>${!media?"":`<button type="button" class="icon-btn" data-vdel="${esc(v.id)}" aria-label="Rimuovi video">✕</button>`}</div>`).join(""):'<p class="status">Nessuno spezzone.</p>'}
 function openVideo(id){const v=getVideos().find(x=>x.id===id);if(!v)return;$("vidT").textContent=vidTitle(v.name);
   $("vidFrame").innerHTML=`<div class="yt"><iframe src="https://drive.google.com/file/d/${id}/preview" title="${esc(vidTitle(v.name))}" allow="autoplay; fullscreen" allowfullscreen></iframe></div>`;
   $("vidOpen").href=`https://drive.google.com/file/d/${id}/view`;$("vidBg").hidden=false}
@@ -425,7 +425,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-mcom]");if
 function comFail(e){$("comErr").textContent=COMERR[e&&e.code]||errMsg(e);$("comErr").hidden=false}
 $("comForm").addEventListener("submit",async e=>{e.preventDefault();const text=$("comText").value.trim();if(!text||!COM.cur)return;
   const btn=$("comSend");btn.disabled=true;$("comErr").hidden=true;
-  try{await api("commentAdd",{token:SESSION.token,match:COM.cur,text,dev:devId()});$("comText").value="";COM.loaded=false;await loadComments()}
+  try{await api("commentAdd",{token:SESSION.token,match:COM.cur,text,dev:devId(),label:(()=>{const m=S.matches.find(x=>x.id===COM.cur);return m?(m.opp||""):""})()});$("comText").value="";COM.loaded=false;await loadComments()}
   catch(er){comFail(er)}btn.disabled=false});
 $("comBg").addEventListener("click",async e=>{if(!COM.cur)return;
   const r=e.target.closest("[data-react]"),l=e.target.closest("[data-like]"),h=e.target.closest("[data-hide]"),p=e.target.closest("[data-reply]");
@@ -484,17 +484,17 @@ function confetti(){try{if(window.matchMedia&&matchMedia("(prefers-reduced-motio
   document.body.appendChild(h);setTimeout(()=>h.remove(),3400)}catch(_){}}
 function renderLive(){renderNext();updateAlertBar();maybeAskPush();$("tabLiveDot").hidden=!S.live;setVideo($("liveVideo"),S.live&&S.live.yt);
   const L=S.live,box=$("liveBox"),sec=$("liveSec");const team=S.settings.team||"DF Academy";
-  if(!L){lastSc=null;sec.hidden=readOnly;box.innerHTML=readOnly?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button>${getTrain()?"":`<button type="button" class="btn btn-ghost btn-sm" data-live="train">● Allenamento in diretta</button>`}</div>`;return}
+  if(!L){lastSc=null;sec.hidden=!media;box.innerHTML=!media?"":`<div class="live-start"><span>Nessuna partita in corso.</span><button type="button" class="btn btn-primary btn-sm" data-live="open">● Avvia diretta</button>${getTrain()||readOnly?"":`<button type="button" class="btn btn-ghost btn-sm" data-live="train">● Allenamento in diretta</button>`}</div>`;return}
   sec.hidden=false;const home=L.where!=="trasferta";
   const left=home?team:L.opp,right=home?L.opp:team,ls=home?L.gf:L.ga,rs=home?L.ga:L.gf;
   const ev=[...(L.events||[])].reverse().map(e=>`<li class="${e.type}"><span class="t">${esc(e.t)}</span><span class="ev">${esc(e.text)}</span></li>`).join("");
   const pool=(L.presenti&&L.presenti.length?L.presenti:S.players.map(p=>p.name)).slice().sort((a,b)=>shortName(a).localeCompare(shortName(b)));
-  const ctrl=readOnly?"":`
+  const ctrl=!media?"":`
     <div class="live-ctrl"><button type="button" class="btn btn-goal" data-live="gol">+ Gol ${esc(team.split(" ")[0])}</button><button type="button" class="btn btn-goal-opp" data-live="golavv">+ Gol ${esc(L.opp)}</button></div>
     ${livePick?`<div class="live-pick"><span class="label">Chi ha segnato?</span><div class="opts">${pool.map(n=>`<button type="button" data-live="scorer" data-n="${esc(n)}">${esc(shortName(n))}</button>`).join("")}<button type="button" data-live="scorer" data-n="">Non so</button></div><button type="button" class="btn btn-ghost btn-sm" data-live="pickclose">Annulla</button></div>`:""}
     <div class="live-quick">${["Inizio partita","Fine primo tempo","Inizio ripresa","Grande parata!","Palo!","Cambio"].map(q=>`<button type="button" data-live="quick" data-q="${q}">${q}</button>`).join("")}</div>
     <form class="live-note" id="liveNote"><input type="text" id="liveNoteTxt" placeholder="Scrivi un aggiornamento…" autocomplete="off"><button type="submit" class="btn btn-ghost btn-sm">Pubblica</button></form>`;
-  const foot=readOnly?`<span class="status">La pagina si aggiorna da sola a ogni novità.</span>`:
+  const foot=!media?`<span class="status">La pagina si aggiorna da sola a ogni novità.</span>`:
     (liveConfirm==="end"?`<span class="confirm" style="color:var(--fg)">Chiudere la diretta e salvare la partita?</span><span style="display:flex;gap:6px"><button type="button" class="btn btn-ghost btn-sm" data-live="no">No</button><button type="button" class="btn btn-primary btn-sm" data-live="endok">Salva partita</button></span>`
     :liveConfirm==="cancel"?`<span class="confirm">Annullare la diretta senza salvare?</span><span style="display:flex;gap:6px"><button type="button" class="btn btn-ghost btn-sm" data-live="no">No</button><button type="button" class="btn btn-danger btn-sm" data-live="cancelok">Annulla diretta</button></span>`
     :`<span style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-live="undo"${(L.events||[]).length?"":" disabled"}>Annulla ultimo</button><button type="button" class="btn btn-ghost btn-sm" data-live="cancel">Annulla diretta</button></span><button type="button" class="btn btn-primary btn-sm" data-live="end">Fine partita</button>`);
@@ -503,7 +503,7 @@ function renderLive(){renderNext();updateAlertBar();maybeAskPush();$("tabLiveDot
     <div class="live-score"><span class="tm ${home?"us":""}">${esc(left)}</span><span class="sc${lastSc!==null&&lastSc!==ls+"-"+rs?" bump":""}">${ls}–${rs}</span><span class="tm ${home?"":"us"}">${esc(right)}</span></div>
     ${ctrl}
     ${ev?`<ul class="feed">${ev}</ul>`:`<div class="status">Ancora nessun aggiornamento.</div>`}
-    <div class="live-foot">${foot}<button type="button" class="btn btn-ghost btn-sm share-btn" data-live="share">Condividi</button>${readOnly?"":`<button type="button" class="btn btn-ghost btn-sm" data-live="yt">${L.yt?"Link video":"+ Video"}</button>`}</div>
+    <div class="live-foot">${foot}<button type="button" class="btn btn-ghost btn-sm share-btn" data-live="share">Condividi</button>${!media?"":`<button type="button" class="btn btn-ghost btn-sm" data-live="yt">${L.yt?"Link video":"+ Video"}</button>`}</div>
   </div>`;lastSc=scNow;
   const nf=$("liveNote");if(nf)nf.onsubmit=async e=>{e.preventDefault();const t=$("liveNoteTxt").value.trim();if(!t)return;await liveEvent({type:"nota",text:t})};
 }
@@ -900,7 +900,7 @@ async function refresh(force){
     if(!force&&VERSION){const v=await api("version",{token:SESSION.token});if(v.version===VERSION)return}
     const j=await api("get",{token:SESSION.token});
     if(j.role!==SESSION.role){SESSION.role=j.role;LS.set("session",SESSION)}
-    readOnly=j.role!=="admin";syncUsersTab();
+    readOnly=j.role!=="admin";media=j.role==="admin"||j.role==="regia";syncUsersTab();
     const prevLive=S.live;S=normState(j.state);VERSION=j.version;LS.set("cache",{state:S,version:VERSION});
     if(liveSeen)notifyLive(prevLive,S.live);liveSeen=true;
     if(!readOnly&&!persistedNext&&S.matches.length&&!S.settings.nextList){persistedNext=true;setTimeout(()=>saveNexts(readNexts()),400)}
@@ -919,8 +919,8 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 async function boot(){
   if(!SESSION){showLogin("");return}
   $("login").hidden=true;$("app").hidden=false;
-  readOnly=SESSION.role!=="admin";syncUsersTab();
-  $("whoami").textContent=SESSION.user+(readOnly?"":" · modifica");
+  readOnly=SESSION.role!=="admin";media=SESSION.role==="admin"||SESSION.role==="regia";syncUsersTab();
+  $("whoami").textContent=SESSION.user+(!readOnly?" · modifica":SESSION.role==="regia"?" · regia":"");
   const c=LS.get("cache");if(c&&c.state){S=normState(c.state);VERSION=c.version;render()}else{setStatus("Caricamento delle partite…",false);render()}
   await refresh(true);if($("status").textContent==="Caricamento delle partite…")setStatus("",false);
   maybeSeed();schedulePoll();

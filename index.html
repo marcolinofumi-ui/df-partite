@@ -100,7 +100,7 @@
 
   <section class="section" data-pane="utenti" id="usersSec" aria-labelledby="hUsers">
     <div class="section-head"><h2 id="hUsers">Utenti e ruoli</h2><button type="button" class="btn btn-primary btn-sm" id="uAdd">+ Nuovo utente</button></div>
-    <p class="hint">Admin: può modificare tutto. Lettore: può solo consultare. Le modifiche valgono subito.</p>
+    <p class="hint">Admin: può modificare tutto. Regia: può avviare e condurre le dirette e caricare gli spezzoni video. Lettore: può solo consultare. Le modifiche valgono subito.</p>
     <div id="uList" class="ulist"><p class="status">Caricamento…</p></div>
   </section>
 
@@ -247,7 +247,7 @@
     <h3 id="uTitle">Nuovo utente</h3>
     <label class="field"><span class="label">Utente</span><input type="text" id="uName" autocapitalize="none" spellcheck="false" autocomplete="off" maxlength="30" placeholder="es. mario.rossi"></label>
     <label class="field"><span class="label" id="uPassLbl">Password</span><span class="pw"><input type="password" id="uPass" autocomplete="new-password"><button type="button" class="pw-eye" data-eye="uPass" aria-label="Mostra password" aria-pressed="false"></button></span></label>
-    <label class="field"><span class="label">Ruolo</span><select id="uRole"><option value="lettore">Lettore · solo consulta</option><option value="admin">Admin · può modificare</option></select></label>
+    <label class="field"><span class="label">Ruolo</span><select id="uRole"><option value="lettore">Lettore · solo consulta</option><option value="regia">Regia · dirette e spezzoni</option><option value="admin">Admin · può modificare</option></select></label>
     <div class="hint warn" id="uErr" hidden></div>
     <div class="sheet-actions">
       <button type="button" class="btn btn-ghost" id="uCancel">Annulla</button>
