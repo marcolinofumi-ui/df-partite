@@ -494,13 +494,14 @@ body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 .com-meta{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
 .com-meta small{color:var(--muted)}
 .com-badge{font-size:12px;font-weight:700;padding:1px 8px;border-radius:9px;background:var(--club);color:var(--club-fg)}
-.com-txt{margin:2px 0;overflow-wrap:anywhere}
+.com-txt{margin:2px 0;overflow-wrap:anywhere;white-space:pre-wrap}
+.com-likers{font-size:12px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
 .com-act{display:flex;gap:14px}
 .com-act button{min-height:44px;margin:-8px 0;padding:0;border:0;background:none;font:inherit;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer}
 .com-act button[aria-pressed="true"]{color:var(--accent)}
 .com-form{display:flex;flex-direction:column;gap:8px}
 .com-form input{height:48px;border:1px solid var(--line);border-radius:24px;padding:0 18px;font:inherit;background:var(--bg);color:var(--fg);min-width:0}
-.com-row{display:flex;gap:8px}.com-row input{flex:1}
+.com-row{display:flex;gap:8px;align-items:flex-end}.com-row input,.com-row textarea{flex:1;font:inherit;resize:none;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);color:var(--fg)}
 .com-as{font-size:13px;color:var(--muted)}
 .com-n{display:inline-block;margin-left:8px;min-width:22px;padding:0 8px;border-radius:11px;background:var(--surface-2);color:var(--fg);font-size:12px;font-weight:800;line-height:22px;text-align:center}
 .com-n.new{background:var(--accent);color:var(--accent-fg)}

@@ -396,7 +396,7 @@ $("vidAddForm").addEventListener("submit",async e=>{e.preventDefault();const id=
 
 
 /* ---------- messaggi dei genitori (scheda "Commenti" del foglio) ---------- */
-const COM={loaded:false,loading:false,items:[],likes:{},reacts:{},mine:{},mineLike:{},admin:false,cur:null};
+const COM={loaded:false,loading:false,items:[],likes:{},likers:{},reacts:{},mine:{},mineLike:{},admin:false,cur:null,first:false,last:0};
 const COMERR=Object.assign({},{troppi_messaggi:"Stai scrivendo troppo in fretta, riprova tra un minuto.",messaggio_vuoto:"Scrivi un messaggio.",azione_sconosciuta:"Lo script del foglio non è ancora aggiornato per i messaggi."});
 const REACTS=[["a","Bravi ragazzi"],["b","Che gol"],["c","Grazie mister"]];
 function devId(){let d=LS.get("dev");if(!d){d=Math.random().toString(36).slice(2,10)+Date.now().toString(36);LS.set("dev",d)}return d}
@@ -406,19 +406,19 @@ function comMarkSeen(id){const s=LS.get("comSeen")||{};s[id]=Date.now();LS.set("
 function comBadge(id){if(!COM.loaded)return"";const n=comCount(id),nu=COM.items.filter(x=>x.m===id&&!x.h&&x.w>comSeen(id)).length;
   return `<span class="com-n${nu?" new":""}" title="${nu?nu+" nuovi":"Nessun messaggio nuovo"}">${n}${nu?" · "+nu+" nuov"+(nu===1?"o":"i"):""}</span>`}
 function comWhen(t){const s=Math.max(0,(Date.now()-t)/1000);if(s<60)return"adesso";if(s<3600)return Math.floor(s/60)+" min fa";if(s<86400)return Math.floor(s/3600)+" h fa";return new Date(t).toLocaleDateString("it-IT",{day:"numeric",month:"short"})}
-async function loadComments(){if(!SESSION||COM.loading)return;COM.loading=true;
-  try{const j=await api("commentList",{token:SESSION.token,dev:devId()});Object.assign(COM,{items:j.items||[],likes:j.likes||{},reacts:j.reacts||{},mine:j.mine||{},mineLike:j.mineLike||{},admin:!!j.admin,loaded:true})}
+async function loadComments(){if(!SESSION||COM.loading)return;COM.loading=true;COM.last=Date.now();
+  try{const j=await api("commentList",{token:SESSION.token,dev:devId()});Object.assign(COM,{items:j.items||[],likes:j.likes||{},likers:j.likers||{},reacts:j.reacts||{},mine:j.mine||{},mineLike:j.mineLike||{},admin:!!j.admin,loaded:true})}
   catch(e){COM.loaded=true;if(["sessione_scaduta","sessione_non_valida","accesso_richiesto"].includes(e&&e.code)){COM.loading=false;logout(errMsg(e));return}}
   COM.loading=false;render();if(COM.cur&&!$("comBg").hidden)renderCom()}
 function renderCom(){const id=COM.cur,m=S.matches.find(x=>x.id===id);if(!m)return;
   $("comSub").textContent=`${S.settings.team||"DF Academy"} · ${m.opp||""}`;
   const rc=COM.reacts[id]||{},mine=COM.mine[id]||[];
   $("comReacts").innerHTML=REACTS.map(([k,l])=>`<button type="button" class="com-chip" data-react="${k}" aria-pressed="${mine.includes(k)}">${l}<b>${rc[k]||0}</b></button>`).join("");
-  const l=COM.items.filter(x=>x.m===id).sort((a,b)=>a.w-b.w);
+  const lb=$("comList"),near=COM.first||lb.scrollHeight-lb.scrollTop-lb.clientHeight<90;const l=COM.items.filter(x=>x.m===id).sort((a,b)=>a.w-b.w);
   $("comList").innerHTML=l.length?l.map(x=>{const ini=esc(String(x.n||"?").slice(0,2).toUpperCase());
-    return `<div class="com-msg${x.h?" hid":""}"><div class="com-av${x.s?" staff":""}">${ini}</div><div class="com-body"><div class="com-meta"><b>${esc(String(x.n||"Genitore").toUpperCase())}</b>${x.s?'<span class="com-badge">Staff</span>':""}<small>${comWhen(x.w)}${x.h?" · nascosto":""}</small></div><p class="com-txt">${esc(x.t)}</p><div class="com-act"><button type="button" data-like="${esc(x.id)}" aria-pressed="${!!COM.mineLike[x.id]}">Mi piace · ${COM.likes[x.id]||0}</button><button type="button" data-reply="${esc(String(x.n||"").toUpperCase())}">Rispondi</button>${COM.admin?`<button type="button" data-hide="${esc(x.id)}">${x.h?"Mostra":"Nascondi"}</button>`:""}</div></div></div>`}).join(""):'<p class="status">Ancora nessun messaggio. Scrivi tu il primo!</p>';
-  comMarkSeen(id);$("comList").scrollTop=$("comList").scrollHeight}
-function openCom(id){COM.cur=id;comMarkSeen(id);$("comAs").textContent="Scrivi come "+String(SESSION&&SESSION.user||"").toUpperCase();$("comText").value="";$("comErr").hidden=true;$("comBg").hidden=false;renderCom();loadComments()}
+    return `<div class="com-msg${x.h?" hid":""}"><div class="com-av${x.s?" staff":""}">${ini}</div><div class="com-body"><div class="com-meta"><b>${esc(String(x.n||"Genitore").toUpperCase())}</b>${x.s?'<span class="com-badge">Staff</span>':""}<small>${comWhen(x.w)}${x.h?" · nascosto":""}</small></div><p class="com-txt">${esc(x.t)}</p><div class="com-act"><button type="button" data-like="${esc(x.id)}" aria-pressed="${!!COM.mineLike[x.id]}">Mi piace · ${COM.likes[x.id]||0}</button><button type="button" data-reply="${esc(String(x.n||"").toUpperCase())}">Rispondi</button>${COM.admin?`<button type="button" data-hide="${esc(x.id)}">${x.h?"Mostra":"Nascondi"}</button>`:""}</div>${(COM.likers[x.id]||[]).length?`<div class="com-likers">♥ ${(COM.likers[x.id]).map(n=>esc(String(n).toUpperCase())).join(", ")}</div>`:""}</div></div>`}).join(""):'<p class="status">Ancora nessun messaggio. Scrivi tu il primo!</p>';
+  comMarkSeen(id);if(near)lb.scrollTop=lb.scrollHeight;COM.first=false}
+function openCom(id){COM.cur=id;COM.first=true;comMarkSeen(id);$("comAs").textContent="Scrivi come "+String(SESSION&&SESSION.user||"").toUpperCase();$("comText").value="";$("comErr").hidden=true;$("comBg").hidden=false;renderCom();loadComments()}
 $("comClose").onclick=()=>{$("comBg").hidden=true;COM.cur=null;render()};
 $("comBg").addEventListener("click",e=>{if(e.target===$("comBg")){$("comBg").hidden=true;COM.cur=null;render()}});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-mcom]");if(b)openCom(b.dataset.mcom)});
@@ -435,7 +435,7 @@ $("comBg").addEventListener("click",async e=>{if(!COM.cur)return;
       COM.mine[COM.cur]=on?(COM.mine[COM.cur]||[]).filter(x=>x!==k):[...(COM.mine[COM.cur]||[]),k];
       COM.reacts[COM.cur]=Object.assign({},COM.reacts[COM.cur]);COM.reacts[COM.cur][k]=Math.max(0,(COM.reacts[COM.cur][k]||0)+(on?-1:1));renderCom();
       await api("commentToggle",{token:SESSION.token,kind:"r",match:COM.cur,target:k,dev:devId()})}
-    else if(l){const id=l.dataset.like,on=!!COM.mineLike[id];COM.mineLike[id]=on?0:1;COM.likes[id]=Math.max(0,(COM.likes[id]||0)+(on?-1:1));renderCom();
+    else if(l){const id=l.dataset.like,on=!!COM.mineLike[id],me=SESSION.user;COM.mineLike[id]=on?0:1;COM.likes[id]=Math.max(0,(COM.likes[id]||0)+(on?-1:1));COM.likers[id]=(COM.likers[id]||[]).filter(n=>n!==me);if(!on)COM.likers[id].push(me);renderCom();
       await api("commentToggle",{token:SESSION.token,kind:"l",match:COM.cur,target:id,dev:devId()})}
     else if(h){await api("commentHide",{token:SESSION.token,id:h.dataset.hide});COM.loaded=false;await loadComments()}
   }catch(er){comFail(er);COM.loaded=false;loadComments()}});
@@ -911,9 +911,10 @@ async function refresh(force){
     if(e.code==="offline"){failN++;if(failN>=2||navigator.onLine===false){const o=$("offline");o.textContent="Connessione assente o instabile"+(lastOk?" · dati aggiornati alle "+hm(new Date(lastOk)):"")+" · tocca per riprovare";o.hidden=false}}
   }
 }
-function schedulePoll(){clearTimeout(pollTimer);if(!SESSION)return;const ms=S.live?5000:15000;pollTimer=setTimeout(async()=>{if(document.visibilityState==="visible"||S.live)await refresh(false);schedulePoll()},ms)}
+function schedulePoll(){clearTimeout(pollTimer);if(!SESSION)return;const ms=S.live?5000:15000;pollTimer=setTimeout(async()=>{if(document.visibilityState==="visible"||S.live)await refresh(false);if(document.visibilityState==="visible"&&COM.loaded&&Date.now()-COM.last>((COM.cur&&!$("comBg").hidden)?8000:45000))loadComments();schedulePoll()},ms)}
 $("offline").addEventListener("click",()=>refresh(true));window.addEventListener("online",()=>{if(SESSION)refresh(true)});
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&SESSION){refresh(false).then(schedulePoll)}});
+const resume=()=>{if(document.visibilityState==="visible"&&SESSION){refresh(false).then(schedulePoll);if(Date.now()-COM.last>3000)loadComments()}};
+document.addEventListener("visibilitychange",resume);window.addEventListener("pageshow",resume);window.addEventListener("focus",resume);
 
 /* ---------- avvio ---------- */
 async function boot(){
