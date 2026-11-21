@@ -400,6 +400,7 @@ const COM={loaded:false,loading:false,items:[],likes:{},likers:{},reacts:{},mine
 const COMERR=Object.assign({},{troppi_messaggi:"Stai scrivendo troppo in fretta, riprova tra un minuto.",messaggio_vuoto:"Scrivi un messaggio.",azione_sconosciuta:"Lo script del foglio non è ancora aggiornato per i messaggi."});
 const REACTS=[["a","Bravi ragazzi"],["b","Che gol"],["c","Grazie mister"]];
 function devId(){let d=LS.get("dev");if(!d){d=Math.random().toString(36).slice(2,10)+Date.now().toString(36);LS.set("dev",d)}return d}
+const comName=u=>({admin:"fumi"})[String(u||"").toLowerCase()]||String(u||"");
 function comCount(id){return COM.items.filter(x=>x.m===id&&!x.h).length}
 function comSeen(id){const s=LS.get("comSeen")||{};return s[id]||0}
 function comMarkSeen(id){const s=LS.get("comSeen")||{};s[id]=Date.now();LS.set("comSeen",s)}
@@ -415,10 +416,10 @@ function renderCom(){const id=COM.cur,m=S.matches.find(x=>x.id===id);if(!m)retur
   const rc=COM.reacts[id]||{},mine=COM.mine[id]||[];
   $("comReacts").innerHTML=REACTS.map(([k,l])=>`<button type="button" class="com-chip" data-react="${k}" aria-pressed="${mine.includes(k)}">${l}<b>${rc[k]||0}</b></button>`).join("");
   const lb=$("comList"),near=COM.first||lb.scrollHeight-lb.scrollTop-lb.clientHeight<90;const l=COM.items.filter(x=>x.m===id).sort((a,b)=>a.w-b.w);
-  $("comList").innerHTML=l.length?l.map(x=>{const ini=esc(String(x.n||"?").slice(0,2).toUpperCase());
-    return `<div class="com-msg${x.h?" hid":""}"><div class="com-av${x.s?" staff":""}">${ini}</div><div class="com-body"><div class="com-meta"><b>${esc(String(x.n||"Genitore").toUpperCase())}</b>${x.s?'<span class="com-badge">Staff</span>':""}<small>${comWhen(x.w)}${x.h?" · nascosto":""}</small></div><p class="com-txt">${esc(x.t)}</p><div class="com-act"><button type="button" data-like="${esc(x.id)}" aria-pressed="${!!COM.mineLike[x.id]}">Mi piace · ${COM.likes[x.id]||0}</button><button type="button" data-reply="${esc(String(x.n||"").toUpperCase())}">Rispondi</button>${COM.admin?`<button type="button" data-hide="${esc(x.id)}">${x.h?"Mostra":"Nascondi"}</button>`:""}</div>${(COM.likers[x.id]||[]).length?`<div class="com-likers">♥ ${(COM.likers[x.id]).map(n=>esc(String(n).toUpperCase())).join(", ")}</div>`:""}</div></div>`}).join(""):'<p class="status">Ancora nessun messaggio. Scrivi tu il primo!</p>';
+  $("comList").innerHTML=l.length?l.map(x=>{const ini=esc(comName(x.n||"?").slice(0,2).toUpperCase());
+    return `<div class="com-msg${x.h?" hid":""}"><div class="com-av${x.s?" staff":""}">${ini}</div><div class="com-body"><div class="com-meta"><b>${esc(comName(x.n||"Genitore").toUpperCase())}</b>${x.s?'<span class="com-badge">Staff</span>':""}<small>${comWhen(x.w)}${x.h?" · nascosto":""}</small></div><p class="com-txt">${esc(x.t)}</p><div class="com-act"><button type="button" data-like="${esc(x.id)}" aria-pressed="${!!COM.mineLike[x.id]}">Mi piace · ${COM.likes[x.id]||0}</button><button type="button" data-reply="${esc(comName(x.n||"").toUpperCase())}">Rispondi</button>${COM.admin?`<button type="button" data-hide="${esc(x.id)}">${x.h?"Mostra":"Nascondi"}</button>`:""}</div>${(COM.likers[x.id]||[]).length?`<div class="com-likers">♥ ${(COM.likers[x.id]).map(n=>esc(comName(n).toUpperCase())).join(", ")}</div>`:""}</div></div>`}).join(""):'<p class="status">Ancora nessun messaggio. Scrivi tu il primo!</p>';
   comMarkSeen(id);if(near)lb.scrollTop=lb.scrollHeight;COM.first=false}
-function openCom(id){COM.cur=id;COM.first=true;comMarkSeen(id);$("comAs").textContent="Scrivi come "+String(SESSION&&SESSION.user||"").toUpperCase();$("comText").value="";$("comErr").hidden=true;$("comBg").hidden=false;renderCom();loadComments()}
+function openCom(id){COM.cur=id;COM.first=true;comMarkSeen(id);$("comAs").textContent="Scrivi come "+comName(SESSION&&SESSION.user||"").toUpperCase();$("comText").value="";$("comErr").hidden=true;$("comBg").hidden=false;renderCom();loadComments()}
 $("comClose").onclick=()=>{$("comBg").hidden=true;COM.cur=null;render()};
 $("comBg").addEventListener("click",e=>{if(e.target===$("comBg")){$("comBg").hidden=true;COM.cur=null;render()}});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-mcom]");if(b)openCom(b.dataset.mcom)});
